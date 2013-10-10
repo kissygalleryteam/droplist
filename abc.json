@@ -1,0 +1,14 @@
+{
+    "name": "droplist",
+    "version": "0.1",
+    "desc": "",
+    "cover": "",
+    "tag":"select,dropdown,combobox",
+    "author": {
+        "name": "阿克",
+        "email": "ake.wgk@taobao.com",
+        "page": ""
+    },
+    "type": "kissy-gallery",
+    "type-url": "http://gallery.kissyui.com/guide"
+}

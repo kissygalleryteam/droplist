@@ -1,0 +1,131 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>droplist的demo</title>
+    <script src="http://g.tbcdn.cn/kissy/k/1.3.0/kissy-min.js" charset="utf-8"></script>
+    <link rel="stylesheet" href="http://g.tbcdn.cn/kissy/k/1.3.0/css/dpl/base-min.css">
+</head>
+<body>
+<h2>droplist的demo</h2>
+
+<style type="text/css">
+    .dropmenu {
+        /*margin-left: 50px;*/
+        display: inline-block;
+        line-height: 20px;
+        border: 1px solid #aaa;
+        vertical-align: middle;
+    }
+    .drop-text {
+        display: block;
+        overflow: hidden;
+        padding: 0 5px;
+        width: 100px;
+    }
+    input.drop-text {
+        line-height: 20px;
+        border: 0 none;
+    }
+    .drop-trigger {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-left: 1px solid red;
+        float: right;
+    }
+    .dropmenu-overlay {
+        border: 1px solid #000;
+        position: absolute;
+        left: -999em;
+        top: -999em;
+    }
+    .dropmenu-overlay ul {
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
+    .dropmenu-overlay li {
+        width: 100px;
+    }
+    .dropmenu-overlay .selected {
+        background-color: #ccc;
+    }
+    .dropmenu-overlay .focus {
+        border: 1px solid red;
+    }
+</style>
+<div class="dropmenu">
+    <div class="drop-trigger"></div>
+    <!--<div class="drop-text" tabindex="-1">初始值</div>-->
+    <input type="text" class="drop-text" readonly />
+</div>
+
+<input type="text" list="dropdata" />
+<br />
+
+<datalist id="dropdata">
+    <option value="111">111</option>
+    <option value="222">222</option>
+    <option value="333">333</option>
+    <option value="444">444</option>
+</datalist>
+
+<select name="" id="become">
+    <option value="111">111</option>
+    <option value="222">222</option>
+    <option value="333">333</option>
+    <option value="444">444</option>
+</select>
+
+
+<script>
+    var S = KISSY;
+    if (S.Config.debug) {
+        var srcPath = "../../../";
+        S.config({
+            packages:[
+                {
+                    name:"gallery",
+                    path:srcPath,
+                    charset:"utf-8",
+                    ignorePackageNameInUri:true
+                }
+            ]
+        });
+    }
+
+    S.use('gallery/droplist/0.1/index', function (S, Droplist) {
+        new Droplist({
+            srcNode: ".dropmenu",
+//            dataSource: []
+            dataSource: "./getlist.html"
+        }).render();
+
+          var drop = new Droplist({
+//              srcNode: ".dropmenu",
+              selectedItem1: {
+                  value: "3",
+                  text: "init3"
+              },
+              dataSource: "./getlist.html"
+          });
+        drop.on('change', function(ev) {
+            var data = ev.data;
+            console.log(data);
+        });
+        drop.render();
+
+        setTimeout(function() {
+            drop.selectByValue("2");
+        }, 500);
+
+        var dd = Droplist.decorate(document.getElementById('become'));
+        dd.on('change', function(ev) {
+            console.log('dd', ev.data);
+        });
+        dd.render();
+    })
+</script>
+</body>
+</html>
