@@ -184,6 +184,9 @@
                     result: result,
                     list: data
                 }
+            },
+            insertion: function(el) {
+                S.DOM.insertBefore(el, dd.elWrap);
             }
         });
         de.on('change', function(ev) {

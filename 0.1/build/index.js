@@ -516,9 +516,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
             hideDelay: 100,
             placeholder: "placeholder",
             // droplist容器的append处理逻辑
-            fnAppend: function(el) {
-                document.body.appendChild(el);
-            },
+            insertion: document.body,
             fnDataAdapter: function(data) {
                 return data;
             },
@@ -605,9 +603,13 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
             }
 
             if(!D.parent(elWrap)) {
-                var fnAppend = cfg.fnAppend;
+                var insertion = cfg.insertion;
 
-                S.isFunction(fnAppend) && fnAppend(elWrap);
+                if(S.isFunction(insertion)) {
+                    insertion(elWrap);
+                }else if(insertion.appendChild){
+                    insertion.appendChild(elWrap);
+                }
             }
 
             this._bindElement();
@@ -926,7 +928,10 @@ ChangeLog
    - 一次性远程获取数据或本地数据进行列表渲染。
    - 支持键盘的操作。方向键聚焦选项，回车键选择，esc关闭列表。
    - 支持可输入和不可输入（输入目前代表的是搜索功能）。
-   - 从select节点渲染模拟combo box
+   - 支持多种渲染方式
+     - 从符合条件的结构渲染
+     - 从select节点渲染模拟select
+     - 脚本动态渲染
    - 支持数据定制。(fnDataAdapter/fnReceive)
  */
 
