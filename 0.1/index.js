@@ -26,7 +26,7 @@ KISSY.add(function (S, D, E, DropList) {
                 text: selected.text
             },
             dataSource: data,
-            fnAppend: function(elWrap) {
+            insertion: function(elWrap) {
                 D.replaceWith(el, elWrap);
             }
         });
