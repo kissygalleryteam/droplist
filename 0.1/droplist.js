@@ -3,12 +3,6 @@
  * @author wuake<ake.wgk@taobao.com>
  * @module droplist
  **/
-
-/**
- * combobox
- * TODO 搜索结果列表键盘操作的问题
- * 目前只支持枚举不可输入，需要支持枚举可输入。
- */
 KISSY.add(function (S, D, E, DataList, View) {
     var EMPTY = '',
         def = {
@@ -61,10 +55,10 @@ KISSY.add(function (S, D, E, DataList, View) {
         //调用父类构造函数
 //        DropList.superclass.constructor.apply(self, comConfig);
 
-        this.init.apply(this, arguments);
+        this._init.apply(this, arguments);
     }
     S.augment(DropList, S.EventTarget, /** @lends DropList.prototype*/{
-        init: function(config) {
+        _init: function(config) {
             var cfg = S.merge(def, config);
 
             if(cfg.srcNode) {
@@ -106,12 +100,12 @@ KISSY.add(function (S, D, E, DataList, View) {
             if(S.isArray(cfg.dataSource)) {
                 datalist.dataFactory(cfg.dataSource);
             }else if(S.isString(cfg.dataSource)) {
-                this.fetch(cfg.dataSource, function(data) {
+                this._fetch(cfg.dataSource, function(data) {
                     datalist.dataFactory(data);
                 });
             }
         },
-        fetch: function(url, callback) {
+        _fetch: function(url, callback) {
             var self = this,
                 lastModify = S.now();
 
@@ -145,18 +139,25 @@ KISSY.add(function (S, D, E, DataList, View) {
                 datalist = self._data;
 
             self.on('toggle', function() {
-                self._stopHideTimer();
+                var isVisible = self.isVisible;
+                // focus会触发事件：若列表是隐藏的，则会显示出来。
                 self._keepFocus();
-                if(self.isVisible) {
+                // 若当前已经显示的情况下，需要隐藏一下。
+                if(isVisible) {
                     self.hide();
-                }else {
-                    view.render(datalist._list);
-                    self.show();
                 }
             });
 
-            E.on([this.elTrigger, elText], 'click', function(ev) {
+            E.on([this.elTrigger], 'click', function(ev) {
                 self.fire('toggle');
+            });
+
+            E.on(elText, 'focus', function() {
+                self._stopHideTimer();
+                if(!self.isVisible) {
+                    view.render(datalist._list);
+                    self.show();
+                }
             });
 
             self._bindInput(elText);
@@ -174,30 +175,33 @@ KISSY.add(function (S, D, E, DataList, View) {
                 });
             });
 
-            view.on('itemClick', function(ev) {
+            // 列表的鼠标点击操作和键盘回车选择操作是从view对象中触发的。
+            view.on('itemSelect', function(ev) {
                 var _id = ev.id;
 
                 self._select(_id);
             });
 
-            datalist.on('selected', function(ev) {
+            view.on('focus', function(ev) {
                 var data = ev.data;
-                view.select(data && data._id);
-                datalist.focus(data && data._id);
-
-                self.fire('change', {data: datalist.selected});
-            });
-
-            datalist.on('focus', function(ev) {
-                var data = ev.data;
-                view.focus(data && data._id);
 
                 // 将当前聚焦项填充到输入框中
                 if(data) {
                     self._fillText(data);
                 }else {
+                    // 没有聚焦项时，显示选择项即可。
                     self._fillText(datalist.selected);
                 }
+            });
+
+            // 初始化的选择是从datalist中触发的。
+            datalist.on('selected', function(ev) {
+                var data = ev.data;
+
+                // 所以要联动view层的操作
+                view.select(data);
+
+                self.fire('change', {data: data});
             });
         },
         _keepFocus: function() {
@@ -211,12 +215,16 @@ KISSY.add(function (S, D, E, DataList, View) {
 
             this._fillText(data);
         },
+        // 程序调用的选择操作，是从droplist对象中触发的。
         selectByValue: function(value) {
             var data = this.getDataByValue(value);
-            this._select(data._id);
+            this._select(data && data._id);
         },
         getDataByValue: function(value) {
             return this._data.getDataByValue(value);
+        },
+        getSelectedData: function() {
+            return this._data.getSelectedData();
         },
         _fillText: function(data) {
             var elText = this.elText,
@@ -244,8 +252,7 @@ KISSY.add(function (S, D, E, DataList, View) {
                 view = self._view;
 
             E.on(elInput, 'blur', function() {
-                var selected = datalist.selected;
-                self._select(selected && selected._id);
+                self._fillText(datalist.selected);
                 self._latencyHide();
             });
 
@@ -255,8 +262,7 @@ KISSY.add(function (S, D, E, DataList, View) {
 
                 // esc & tab
                 if(keyCode == 9 || keyCode == 27) {
-                    var selected = datalist.selected;
-                    self._select(selected && selected._id);
+                    self._fillText(datalist.selected);
                     self.hide();
                     return;
                 }
@@ -271,24 +277,17 @@ KISSY.add(function (S, D, E, DataList, View) {
                         return;
                     }
 
-                    var current = datalist.focused,
-                        direction_down = keyCode === 40,
-                        newFocus;
-
-                    if(current) {
-                        newFocus = direction_down ? datalist.nextSibling(current._id) : datalist.previousSibling(current._id);
+                    if(keyCode === 40) {
+                        view.focusNext();
                     }else {
-                        newFocus = datalist._list[direction_down ? 0 : datalist._list.length -1];
+                        view.focusPrevious();
                     }
-
-                    datalist.focus(newFocus && newFocus._id);
                     return;
                 }
 
                 // 回车操作
                 if(keyCode == 13) {
-                    var focus = datalist.focused;
-                    self._select(focus && focus._id);
+                    view.selectFocused();
                     return;
                 }
             });
@@ -315,9 +314,19 @@ KISSY.add(function (S, D, E, DataList, View) {
                 datalist.filter({
                     text: kw
                 }, function(list) {
-                    if(view.render(list) === false) {
-                        self.hide();
-                    }else{
+                    // 如果进行搜索，则表示当前选择项失效。
+                    // 直接设置数据为空即可。若通过select方法来取消选择，会联动数据回填，导致输入框的内容不符合预期。
+                    var prevData = datalist.selected;
+                    datalist.selected = view.focused = undefined;
+                    // 但是若数据变化了，还是需要触发外部事件，便于响应处理
+                    if(prevData !== undefined) {
+                        self.fire('change', {data: undefined});
+                    }
+
+                    if(list.length === 0) {
+                        view.emptyRender();
+                    }else {
+                        view.render(list);
                         self.show();
                     }
                 });
@@ -367,8 +376,9 @@ KISSY.add(function (S, D, E, DataList, View) {
  - ARIA
  - input placeholder
  - selection range
- - remote data
  - different view
+ - 目前只支持枚举不可输入，需要支持枚举可输入。
+ - remote data?
 */
 
 /*

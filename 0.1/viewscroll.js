@@ -32,6 +32,10 @@ KISSY.add(function(S, Overlay, Template, Lap) {
             layer.on('afterRenderUI', function() {
                 self._UIRender();
             });
+
+            this.on('hide', function() {
+                self.focused = undefined;
+            })
         },
         /**
          * @public 渲染指定的数据
@@ -62,6 +66,7 @@ KISSY.add(function(S, Overlay, Template, Lap) {
             D.html(self.elList, EMPTY);
 
             lap = self.lap = Lap(list, {duration: 30});
+            self._list = list;
 
             // 每一条记录的事件响应
             lap.handle(function(item, globalIndex) {
@@ -92,7 +97,7 @@ KISSY.add(function(S, Overlay, Template, Lap) {
                 selected = this.datalist.selected;
 
             if(selected && selected.value === data.value) {
-                this._selectElement(el);
+                this._selectByElement(el, data);
             }
 
             return el;
@@ -108,7 +113,6 @@ KISSY.add(function(S, Overlay, Template, Lap) {
             elContent.append(elList);
 
             self._bindList();
-
 
             /**
              * @public 在渲染列表容器的时候触发。droplist对象用来进行焦点控制。
@@ -130,33 +134,101 @@ KISSY.add(function(S, Overlay, Template, Lap) {
                 if(!target) return;
 
                 var _id = D.attr(target, 'data-id');
-                self.fire('itemClick', {id: _id})
+                self.fire('itemSelect', {id: _id})
             });
         },
         /**
-         * @public 根据clientId 选择指定的元素。若不存在，则取消选择
-         * @param id
+         * @public 根据data._id获取元素，选择指定的元素。若不存在，则取消选择
+         * @param data
          */
-        select: function(id) {
-            var elItem = D.get('#' + TEMPLATES.prefixId+id, this.elList);
+        select: function(data) {
+            var id = data ? data._id : false,
+                elItem = (id !== false) && D.get('#' + TEMPLATES.prefixId + id, this.elList);
+            if(!elItem) {
+                elItem = data = undefined;
+            }
 
-            this._selectElement(elItem);
+            this._selectByElement(elItem, data);
+
+            this.fire('select', {data: data});
         },
-        _selectElement: function(elItem) {
-            D.removeClass(this.selectedItem, TEMPLATES.selectedCls);
-            D.addClass(elItem, TEMPLATES.selectedCls);
-            this.selectedItem = elItem;
+        _selectByElement: function(elItem, data) {
+            this._setElementClass(elItem, this.selected, TEMPLATES.selectedCls);
+
+            this.selected = data;
+            this.focused = data;
         },
         /**
          * @public 根据clientId 聚焦指定的元素。若不存在，则取消聚焦
          * @param id
          */
-        focus: function(id) {
-            var elItem = D.get('#' + TEMPLATES.prefixId+id, this.elList);
+        _focus: function(data) {
+            var id = data ? data._id : false,
+                elItem = (id !== false) && D.get('#' + TEMPLATES.prefixId+id, this.elList);
 
-            D.removeClass(this.focusItem, TEMPLATES.focusCls);
-            D.addClass(elItem, TEMPLATES.focusCls);
-            this.focusItem = elItem;
+            // TODO 列表未渲染出来时如何处理？
+            if(!elItem) {
+                elItem = data = undefined;
+            }
+
+            this._setElementClass(elItem, this.focused, TEMPLATES.focusCls);
+
+            this.focused = data;
+            this.fire('focus', {data: data});
+        },
+        _setElementClass: function(el, data, cls) {
+            if(data) {
+                var elItem = D.get('#' + TEMPLATES.prefixId + data._id, this.elList);
+                elItem && D.removeClass(elItem, cls);
+            }
+            el && D.addClass(el, cls);
+        },
+        focusNext: function() {
+            var focused = this.focused,
+                newFocus;
+            if(focused) {
+                var index = 0;
+                S.each(this._list, function(item, idx) {
+                    if(item.value == focused.value) {
+                        index = idx;
+                        return false;
+                    }
+                });
+                newFocus = this._list[index + 1];
+            }else {
+                newFocus = this._list[0];
+            }
+
+            this._focus(newFocus);
+        },
+        focusPrevious: function() {
+            var focused = this.focused,
+                newFocus;
+            if(focused) {
+                var index = 0;
+                S.each(this._list, function(item, idx) {
+                    if(item.value == focused.value) {
+                        index = idx;
+                        return false;
+                    }
+                });
+                newFocus = this._list[index - 1];
+            }else {
+                newFocus = this._list[this._list.length - 1];
+            }
+
+            this._focus(newFocus);
+        },
+        selectFocused: function() {
+            // 通过事件触发，而不是直接调用view的方法触发。
+            // 因为对整个组件来说，选择操作除了表现层的改变，还有datalist数据层的处理。
+            // 若focus为空的时候，并不等于取消选择。保持选择即可。
+            if(this.focused) {
+                this.fire('itemSelect', {id: this.focused._id});
+            }
+        },
+        emptyRender: function() {
+            this.visible(false);
         },
         /**
          * @public 显示和隐藏
@@ -165,8 +237,10 @@ KISSY.add(function(S, Overlay, Template, Lap) {
         visible: function(isVisible) {
             if(isVisible) {
                 this.layer.show();
+                this.fire('show');
             }else {
                 this.layer.hide();
+                this.fire('hide');
             }
         },
         /**

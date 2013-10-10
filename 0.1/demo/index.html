@@ -11,7 +11,6 @@
 
 <style type="text/css">
     .dropmenu {
-        /*margin-left: 50px;*/
         display: inline-block;
         line-height: 20px;
         border: 1px solid #aaa;
@@ -39,6 +38,7 @@
         position: absolute;
         left: -999em;
         top: -999em;
+        background-color: #fff;
     }
     .dropmenu-overlay ul {
         padding: 0;
@@ -96,16 +96,16 @@
     }
 
     S.use('gallery/droplist/0.1/index', function (S, Droplist) {
-        new Droplist({
-            srcNode: ".dropmenu",
-//            dataSource: []
-            dataSource: "./getlist.html"
-        }).render();
+//        new Droplist({
+//            srcNode: ".dropmenu",
+////            dataSource: []
+//            dataSource: "./getlist.html"
+//        }).render();
 
           var drop = new Droplist({
 //              srcNode: ".dropmenu",
-              selectedItem1: {
-                  value: "3",
+              selectedItem: {
+                  value: "3456",
                   text: "init3"
               },
               dataSource: "./getlist.html"
@@ -117,7 +117,7 @@
         drop.render();
 
         setTimeout(function() {
-            drop.selectByValue("2");
+            drop.selectByValue("2345");
         }, 500);
 
         var dd = Droplist.decorate(document.getElementById('become'));
