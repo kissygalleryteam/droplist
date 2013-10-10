@@ -10,7 +10,7 @@
 <h2>droplist的demo</h2>
 
 <style type="text/css">
-    .dropmenu {
+    .droplist {
         display: inline-block;
         line-height: 20px;
         border: 1px solid #aaa;
@@ -30,15 +30,27 @@
         display: inline-block;
         width: 20px;
         height: 20px;
-        border-left: 1px solid red;
+        border-left: 1px solid #aaa;
         float: right;
     }
+    .drop-trigger .caret {
+        width: 0;
+        height: 0;
+        display: block;
+        border: 4px dashed transparent;
+        border-top: 4px solid #000;
+        line-height: 0;
+        font-size: 0;
+        margin-top: 8px;
+        margin-left: 6px;
+    }
     .dropmenu-overlay {
-        border: 1px solid #000;
+        border: 1px solid rgb(147,193,235);
         position: absolute;
         left: -999em;
         top: -999em;
         background-color: #fff;
+        width: 130px;
     }
     .dropmenu-overlay ul {
         padding: 0;
@@ -46,19 +58,21 @@
         list-style: none;
     }
     .dropmenu-overlay li {
-        width: 100px;
+        padding: 3px 5px;
     }
     .dropmenu-overlay .selected {
-        background-color: #ccc;
+        background-color: rgb(174,212,255);
     }
     .dropmenu-overlay .focus {
-        border: 1px solid red;
+        outline-color: rgb(91, 157, 217);
+        outline-offset: -2px;
+        outline-style: auto;
+        outline-width: 3px;
     }
 </style>
-<div class="dropmenu">
-    <div class="drop-trigger"></div>
-    <!--<div class="drop-text" tabindex="-1">初始值</div>-->
-    <input type="text" class="drop-text" readonly />
+<div class="droplist">
+    <div class="drop-trigger"><i class="caret"></i></div>
+    <input type="text" class="drop-text" />
 </div>
 
 <input type="text" list="dropdata" />
@@ -96,35 +110,86 @@
     }
 
     S.use('gallery/droplist/0.1/index', function (S, Droplist) {
-//        new Droplist({
-//            srcNode: ".dropmenu",
-////            dataSource: []
-//            dataSource: "./getlist.html"
-//        }).render();
+        var da = new Droplist({
+            selectedItem: {
+                value: "4567",
+                text: "4567"
+            },
+            srcNode: ".droplist",
+            dataSource: "./getlist.html"
+        });
+        da.render();
 
-          var drop = new Droplist({
-//              srcNode: ".dropmenu",
-              selectedItem: {
-                  value: "3456",
-                  text: "init3"
-              },
-              dataSource: "./getlist.html"
-          });
+        var initData = da.getSelectedData();
+        console.log(initData);
+
+        var drop = new Droplist({
+          selectedItem: {
+              value: "3",
+              text: "init3"
+          },
+          dataSource: {
+              url: "./getlist2.html",
+              data: {
+                  test: 1,
+                  aaa:2
+              }
+          },
+          fnDataAdapter: function(list) {
+              var result = [];
+              S.each(list, function(it) {
+                result.push({
+                    text: it.text,
+                    value: it.id
+                });
+              });
+              return result;
+          }
+        });
         drop.on('change', function(ev) {
             var data = ev.data;
-            console.log(data);
+            console.log('da', data);
         });
         drop.render();
 
+        console.log('drop init selected data', drop.getSelectedData());
+
         setTimeout(function() {
-            drop.selectByValue("2345");
+            drop.selectByValue("5");
         }, 500);
 
-        var dd = Droplist.decorate(document.getElementById('become'));
+        var elSelect = document.getElementById('become'),
+            dd = Droplist.decorate(elSelect);
+
         dd.on('change', function(ev) {
             console.log('dd', ev.data);
         });
         dd.render();
+
+        var de = new Droplist({
+            selectedItem: {
+                value: "890",
+                text: "890"
+            },
+            dataSource: "./getlist3.html",
+            fnReceive: function(dt) {
+                var data = dt.data,
+                    result = data && data.length > 0;
+
+                if(!result) {
+                    alert("您还没有创建数据");
+                }
+
+                return {
+                    result: result,
+                    list: data
+                }
+            }
+        });
+        de.on('change', function(ev) {
+            console.log('de', ev.data);
+        });
+        de.render();
     })
 </script>
 </body>

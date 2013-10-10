@@ -8,15 +8,22 @@ KISSY.add(function (S, D, E, DataList, View) {
         def = {
             hideDelay: 100,
             placeholder: "placeholder",
+            // droplist容器的append处理逻辑
             fnAppend: function(el) {
                 document.body.appendChild(el);
+            },
+            fnDataAdapter: function(data) {
+                return data;
+            },
+            fnReceive: function(data) {
+                return data;
             }
         },
 
     TEMPLATES = {
-        wrap: '<div class="dropmenu">' +
-            '<div class="drop-trigger"></div>' +
-            '<input class="drop-text" type="text" value="{text}" />' +
+        wrap: '<div class="droplist">' +
+            '<div class="drop-trigger"><i class="caret"></i></div>' +
+            '<input class="drop-text" type="text" />' +
         '</div>',
         textCls: "drop-text",
         triggerCls: "drop-trigger"
@@ -81,56 +88,86 @@ KISSY.add(function (S, D, E, DataList, View) {
             };
         },
         render: function() {
-            if(!this.elWrap) {
-                this._buildWrap();
+            var self = this,
+                cfg = self.cfg,
+                elWrap = self.elWrap;
+
+            if(!elWrap) {
+                self._buildWrap();
+                elWrap = self.elWrap;
             }
 
-            var cfg = this.cfg,
-                datalist = this._data;
-
-            if(!D.parent(this.elWrap)) {
+            if(!D.parent(elWrap)) {
                 var fnAppend = cfg.fnAppend;
 
-                S.isFunction(fnAppend) && fnAppend(this.elWrap);
+                S.isFunction(fnAppend) && fnAppend(elWrap);
             }
 
             this._bindElement();
 
             // render时才做初始化数据处理。
-            if(S.isArray(cfg.dataSource)) {
-                datalist.dataFactory(cfg.dataSource);
-            }else if(S.isString(cfg.dataSource)) {
-                this._fetch(cfg.dataSource, function(data) {
-                    datalist.dataFactory(data);
+            var ds = cfg.dataSource;
+
+            if(S.isArray(ds)) {
+
+                self.dataFactory(ds);
+
+
+            }else if(S.isString(ds)) {
+
+                this._fetch({
+                    url: ds
+                }, function(data) {
+                    self.dataFactory(data);
                 });
+
+
+            }else if(S.isPlainObject(ds)) {
+                this._fetch(ds, function(data) {
+                    self.dataFactory(data);
+                });
+
+
+            }else if(S.isFunction(ds)) {
+
+                ds(function(data) {
+                    self.dataFactory(data);
+                });
+
             }
         },
-        _fetch: function(url, callback) {
+        dataFactory: function(data) {
+            var dt = this.cfg.fnDataAdapter(data);
+            this._data.dataFactory(dt);
+        },
+        _fetch: function(param, callback) {
             var self = this,
                 lastModify = S.now();
 
             self._lastModify = lastModify;
 
-            S.io({
-                url: url,
-                type: "GET",
-                dataType: "json",
-                data: {
-                },
-                success: function(data) {
-                    // 若数据过期了，则抛弃之
-                    if(lastModify < self._lastModify) {
-                        return;
-                    }
+            if(!param.url) {
+                throw new Error("there is no data");
+            }
 
-                    if(!data.result) {
-                        alert(data.msg);
-                        return;
+            var ajaxParam = S.merge({
+                    type: "GET",
+                    dataType: "json",
+                    error: function() {
+                        alert("请求数据发生错误，请稍后重试。");
                     }
+                }, param),
+                fnSuccess = param.success || self.cfg.fnReceive;
 
-                    callback && callback(data.list);
+            ajaxParam.success = function(data) {
+                var returnValue = fnSuccess(data);
+
+                if(returnValue.result) {
+                    callback && callback(returnValue.list);
                 }
-            });
+            }
+
+            S.io(ajaxParam);
         },
         _bindElement: function() {
             var self = this,
@@ -179,7 +216,7 @@ KISSY.add(function (S, D, E, DataList, View) {
             view.on('itemSelect', function(ev) {
                 var _id = ev.id;
 
-                self._select(_id);
+                self._data.select(_id);
             });
 
             view.on('focus', function(ev) {
@@ -201,24 +238,18 @@ KISSY.add(function (S, D, E, DataList, View) {
                 // 所以要联动view层的操作
                 view.select(data);
 
+                self._fillText(data);
+
                 self.fire('change', {data: data});
             });
         },
         _keepFocus: function() {
             E.fire(this.elText, 'focus');
         },
-        _select: function(id) {
-            var datalist = this._data;
-            datalist.select(id);
-
-            var data = datalist.selected;
-
-            this._fillText(data);
-        },
         // 程序调用的选择操作，是从droplist对象中触发的。
         selectByValue: function(value) {
             var data = this.getDataByValue(value);
-            this._select(data && data._id);
+            this._data.select(data && data._id);
         },
         getDataByValue: function(value) {
             return this._data.getDataByValue(value);
@@ -354,7 +385,7 @@ KISSY.add(function (S, D, E, DataList, View) {
             if(!elWrap) {
                 var datalist = this._data,
                     selected = datalist.selected || datalist._initSelected,
-                    html = S.substitute(TEMPLATES.wrap, {text: selected && selected.text});
+                    html = S.substitute(TEMPLATES.wrap);
                 elWrap = D.create(html);
             }
 
@@ -377,17 +408,19 @@ KISSY.add(function (S, D, E, DataList, View) {
  - input placeholder
  - selection range
  - different view
+ - custom template
  - 目前只支持枚举不可输入，需要支持枚举可输入。
  - remote data?
 */
 
 /*
 ChangeLog
- 0.2
+ 0.1
    - 一次性远程获取数据或本地数据进行列表渲染。
    - 支持键盘的操作。方向键聚焦选项，回车键选择，esc关闭列表。
    - 支持可输入和不可输入（输入目前代表的是搜索功能）。
    - 从select节点渲染模拟combo box
+   - 支持数据定制。(fnDataAdapter/fnReceive)
  */
 
 
