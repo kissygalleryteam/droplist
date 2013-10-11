@@ -5,11 +5,9 @@
  **/
 
 KISSY.add(function (S, D, E, DropList) {
-    var EMPTY = '';
 
-    DropList.decorate = function(el, cfg) {
-        var data = [],
-            drop;
+    DropList.decorate = function(el, config) {
+        var data = [];
 
         S.each(el.options, function(elOption) {
             data.push({
@@ -18,20 +16,20 @@ KISSY.add(function (S, D, E, DropList) {
             });
         });
 
-        var selected = el.options[el.selectedIndex];
+        var selected = el.options[el.selectedIndex],
+            cfg = S.merge({
+                selectedItem: {
+                    value: selected.value,
+                    text: selected.text
+                },
+                fieldName: D.attr(el, 'name'),
+                dataSource: data,
+                insertion: function(elWrap) {
+                    D.replaceWith(el, elWrap);
+                }
+            }, config);
 
-        drop = new DropList({
-            selectedItem: {
-                value: selected.value,
-                text: selected.text
-            },
-            dataSource: data,
-            insertion: function(elWrap) {
-                D.replaceWith(el, elWrap);
-            }
-        });
-
-        return drop;
+        return new DropList(cfg);
     };
 
     return DropList;

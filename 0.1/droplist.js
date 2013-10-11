@@ -8,6 +8,7 @@ KISSY.add(function (S, D, E, DataList, View) {
         def = {
             hideDelay: 100,
             placeholder: "placeholder",
+            fieldName: "",
             // droplist容器的append处理逻辑
             insertion: document.body,
             fnDataAdapter: function(data) {
@@ -21,9 +22,11 @@ KISSY.add(function (S, D, E, DataList, View) {
     TEMPLATES = {
         wrap: '<div class="droplist">' +
             '<div class="drop-trigger"><i class="caret"></i></div>' +
-            '<input class="drop-text" type="text" />' +
+            '<input class="drop-text" type="text" name="{name}-text" />' +
+            '<input class="drop-value" type="hidden" name="{name}" />' +
         '</div>',
         textCls: "drop-text",
+        valueCls: "drop-value",
         triggerCls: "drop-trigger"
     },
 
@@ -99,9 +102,17 @@ KISSY.add(function (S, D, E, DataList, View) {
                 var insertion = cfg.insertion;
 
                 if(S.isFunction(insertion)) {
+
                     insertion(elWrap);
                 }else if(insertion.appendChild){
+
                     insertion.appendChild(elWrap);
+                }else if(S.isString(insertion)) {
+
+                    insertion = D.get(insertion);
+                    if(insertion && insertion.appendChild) {
+                        insertion.appendChild(elWrap);
+                    }
                 }
             }
 
@@ -174,6 +185,7 @@ KISSY.add(function (S, D, E, DataList, View) {
         _bindElement: function() {
             var self = this,
                 elText = this.elText,
+                elValue = this.elValue,
                 view = self._view,
                 datalist = self._data;
 
@@ -199,6 +211,13 @@ KISSY.add(function (S, D, E, DataList, View) {
                 }
             });
 
+            elValue && self.on('change', function(ev) {
+                var data = ev.data,
+                    value = data ? data.value : "";
+
+                elValue.value = value;
+            });
+
             self._bindInput(elText);
         },
         _bindControl: function() {
@@ -211,6 +230,13 @@ KISSY.add(function (S, D, E, DataList, View) {
                 E.on(elWrap, 'click', function() {
                     self._stopHideTimer();
                     self._keepFocus();
+                });
+
+                S.UA.chrome && E.on(elWrap, 'scroll', function(ev) {
+                    self._stopHideTimer();
+                    try{
+                        self._keepFocus();
+                    }catch(ex) {}
                 });
             });
 
@@ -243,6 +269,8 @@ KISSY.add(function (S, D, E, DataList, View) {
                 self._fillText(data);
 
                 self.fire('change', {data: data});
+                // 选择操作完成以后，默认关闭浮层。
+                self.hide();
             });
         },
         _keepFocus: function() {
@@ -385,16 +413,18 @@ KISSY.add(function (S, D, E, DataList, View) {
         _buildWrap: function(elWrap) {
             elWrap = D.get(elWrap);
             if(!elWrap) {
-                var datalist = this._data,
-                    selected = datalist.selected || datalist._initSelected,
-                    html = S.substitute(TEMPLATES.wrap);
+                var html = S.substitute(TEMPLATES.wrap, {
+                        name: this.cfg.fieldName || ""
+                    });
                 elWrap = D.create(html);
             }
 
             var elTrigger = D.get('.' + TEMPLATES.triggerCls, elWrap),
-                elText = D.get('.' + TEMPLATES.textCls, elWrap);
+                elText = D.get('.' + TEMPLATES.textCls, elWrap),
+                elValue = D.get('.' + TEMPLATES.valueCls, elWrap);
 
             this.elWrap = elWrap;
+            this.elValue = elValue;
             this.elText = elText;
             this.elTrigger = elTrigger;
         }

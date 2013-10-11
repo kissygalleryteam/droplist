@@ -375,6 +375,7 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
                 }
 
                 if(!target) return;
+                ev.stopPropagation();
 
                 var _id = D.attr(target, 'data-id');
                 self.fire('itemSelect', {id: _id})
@@ -515,6 +516,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
         def = {
             hideDelay: 100,
             placeholder: "placeholder",
+            fieldName: "",
             // droplist容器的append处理逻辑
             insertion: document.body,
             fnDataAdapter: function(data) {
@@ -528,9 +530,11 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
     TEMPLATES = {
         wrap: '<div class="droplist">' +
             '<div class="drop-trigger"><i class="caret"></i></div>' +
-            '<input class="drop-text" type="text" />' +
+            '<input class="drop-text" type="text" name="{name}-text" />' +
+            '<input class="drop-value" type="hidden" name="{name}" />' +
         '</div>',
         textCls: "drop-text",
+        valueCls: "drop-value",
         triggerCls: "drop-trigger"
     },
 
@@ -606,9 +610,17 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 var insertion = cfg.insertion;
 
                 if(S.isFunction(insertion)) {
+
                     insertion(elWrap);
                 }else if(insertion.appendChild){
+
                     insertion.appendChild(elWrap);
+                }else if(S.isString(insertion)) {
+
+                    insertion = D.get(insertion);
+                    if(insertion && insertion.appendChild) {
+                        insertion.appendChild(elWrap);
+                    }
                 }
             }
 
@@ -681,6 +693,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
         _bindElement: function() {
             var self = this,
                 elText = this.elText,
+                elValue = this.elValue,
                 view = self._view,
                 datalist = self._data;
 
@@ -706,6 +719,13 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 }
             });
 
+            elValue && self.on('change', function(ev) {
+                var data = ev.data,
+                    value = data ? data.value : "";
+
+                elValue.value = value;
+            });
+
             self._bindInput(elText);
         },
         _bindControl: function() {
@@ -718,6 +738,13 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 E.on(elWrap, 'click', function() {
                     self._stopHideTimer();
                     self._keepFocus();
+                });
+
+                S.UA.chrome && E.on(elWrap, 'scroll', function(ev) {
+                    self._stopHideTimer();
+                    try{
+                        self._keepFocus();
+                    }catch(ex) {}
                 });
             });
 
@@ -750,6 +777,8 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 self._fillText(data);
 
                 self.fire('change', {data: data});
+                // 选择操作完成以后，默认关闭浮层。
+                self.hide();
             });
         },
         _keepFocus: function() {
@@ -892,16 +921,18 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
         _buildWrap: function(elWrap) {
             elWrap = D.get(elWrap);
             if(!elWrap) {
-                var datalist = this._data,
-                    selected = datalist.selected || datalist._initSelected,
-                    html = S.substitute(TEMPLATES.wrap);
+                var html = S.substitute(TEMPLATES.wrap, {
+                        name: this.cfg.fieldName || ""
+                    });
                 elWrap = D.create(html);
             }
 
             var elTrigger = D.get('.' + TEMPLATES.triggerCls, elWrap),
-                elText = D.get('.' + TEMPLATES.textCls, elWrap);
+                elText = D.get('.' + TEMPLATES.textCls, elWrap),
+                elValue = D.get('.' + TEMPLATES.valueCls, elWrap);
 
             this.elWrap = elWrap;
+            this.elValue = elValue;
             this.elText = elText;
             this.elTrigger = elTrigger;
         }
@@ -945,11 +976,9 @@ ChangeLog
  **/
 
 KISSY.add('gallery/droplist/0.1/index',function (S, D, E, DropList) {
-    var EMPTY = '';
 
-    DropList.decorate = function(el, cfg) {
-        var data = [],
-            drop;
+    DropList.decorate = function(el, config) {
+        var data = [];
 
         S.each(el.options, function(elOption) {
             data.push({
@@ -958,20 +987,20 @@ KISSY.add('gallery/droplist/0.1/index',function (S, D, E, DropList) {
             });
         });
 
-        var selected = el.options[el.selectedIndex];
+        var selected = el.options[el.selectedIndex],
+            cfg = S.merge({
+                selectedItem: {
+                    value: selected.value,
+                    text: selected.text
+                },
+                fieldName: D.attr(el, 'name'),
+                dataSource: data,
+                insertion: function(elWrap) {
+                    D.replaceWith(el, elWrap);
+                }
+            }, config);
 
-        drop = new DropList({
-            selectedItem: {
-                value: selected.value,
-                text: selected.text
-            },
-            dataSource: data,
-            insertion: function(elWrap) {
-                D.replaceWith(el, elWrap);
-            }
-        });
-
-        return drop;
+        return new DropList(cfg);
     };
 
     return DropList;

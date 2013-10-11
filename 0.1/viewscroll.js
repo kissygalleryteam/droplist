@@ -132,6 +132,7 @@ KISSY.add(function(S, Overlay, Template, Lap) {
                 }
 
                 if(!target) return;
+                ev.stopPropagation();
 
                 var _id = D.attr(target, 'data-id');
                 self.fire('itemSelect', {id: _id})
