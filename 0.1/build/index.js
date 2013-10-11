@@ -707,7 +707,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 }
             });
 
-            E.on([this.elTrigger], 'click', function(ev) {
+            E.on(this.elTrigger, 'click', function(ev) {
                 self.fire('toggle');
             });
 

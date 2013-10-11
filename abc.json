@@ -1,7 +1,7 @@
 {
     "name": "droplist",
     "version": "0.1",
-    "desc": "",
+    "desc": "针对大数据量渲染的下拉菜单组件",
     "cover": "",
     "tag":"select,dropdown,combobox",
     "author": {
