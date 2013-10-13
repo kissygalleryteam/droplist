@@ -515,7 +515,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
     var EMPTY = '',
         def = {
             hideDelay: 100,
-            placeholder: "placeholder",
+//            placeholder: "placeholder",
             fieldName: "",
             // droplist容器的append处理逻辑
             insertion: document.body,
@@ -530,8 +530,10 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
     TEMPLATES = {
         wrap: '<div class="droplist">' +
             '<div class="drop-trigger"><i class="caret"></i></div>' +
+            '<div class="drop-wrap">' +
             '<input class="drop-text" type="text" name="{name}-text" />' +
-            '<input class="drop-value" type="hidden" name="{name}" />' +
+            '</div>' +
+            '<input class="drop-value" type="hidden" />' +
         '</div>',
         textCls: "drop-text",
         valueCls: "drop-value",
@@ -642,12 +644,11 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                     self.dataFactory(data);
                 });
 
-
             }else if(S.isPlainObject(ds)) {
+
                 this._fetch(ds, function(data) {
                     self.dataFactory(data);
                 });
-
 
             }else if(S.isFunction(ds)) {
 
@@ -683,8 +684,12 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
             ajaxParam.success = function(data) {
                 var returnValue = fnSuccess(data);
 
+                if(!returnValue) return;
+
                 if(returnValue.result) {
                     callback && callback(returnValue.list);
+                }else {
+                    alert(returnValue.msg);
                 }
             }
 
@@ -806,10 +811,10 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
         },
         show: function() {
             var view = this._view,
-                elText = this.elText;
+                elWrap = this.elWrap;
 
             view.align({
-                node: elText,
+                node: elWrap,
                 points: ['bl','tl'],
                 offset: [0, 0]
             });
@@ -921,15 +926,19 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
         _buildWrap: function(elWrap) {
             elWrap = D.get(elWrap);
             if(!elWrap) {
-                var html = S.substitute(TEMPLATES.wrap, {
-                        name: this.cfg.fieldName || ""
-                    });
+                var html = S.substitute(TEMPLATES.wrap);
                 elWrap = D.create(html);
             }
 
             var elTrigger = D.get('.' + TEMPLATES.triggerCls, elWrap),
                 elText = D.get('.' + TEMPLATES.textCls, elWrap),
-                elValue = D.get('.' + TEMPLATES.valueCls, elWrap);
+                elValue = D.get('.' + TEMPLATES.valueCls, elWrap),
+                fieldName = this.cfg.fieldName;
+
+            // 设置value表单域的name值
+            if(fieldName) {
+                D.attr(elValue, 'name', fieldName);
+            }
 
             this.elWrap = elWrap;
             this.elValue = elValue;
@@ -951,6 +960,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
  - custom template
  - 目前只支持枚举不可输入，需要支持枚举可输入。
  - remote data?
+ - doWith method. more useful for dev
 */
 
 /*
