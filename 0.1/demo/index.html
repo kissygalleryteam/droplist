@@ -36,19 +36,22 @@ KISSY自带的ComboBox基本上能满足80%的需求，但它对某些场景有�
 
 <style type="text/css">
     body {
-        height: 1500px;
+        margin-bottom: 50px;
     }
+    /* 简单的，针对droplist的样式定义 */
     .droplist {
         display: inline-block;
         line-height: 20px;
         border: 1px solid #aaa;
         vertical-align: middle;
+        width: 133px;
+    }
+    .drop-wrap {
+        overflow: hidden;
     }
     .drop-text {
         display: block;
-        overflow: hidden;
         padding: 0 5px;
-        width: 100px;
     }
     input.drop-text {
         line-height: 20px;
@@ -79,7 +82,7 @@ KISSY自带的ComboBox基本上能满足80%的需求，但它对某些场景有�
         left: -999em;
         top: -999em;
         background-color: #fff;
-        width: 130px;
+        width: 133px;
         max-height: 200px;
         overflow: auto;
     }
@@ -104,14 +107,49 @@ KISSY自带的ComboBox基本上能满足80%的需求，但它对某些场景有�
         outline-style: auto;
         outline-width: 3px;
     }
+
+    /* 以下是demo的样式定义 */
     .bright {
         color: #f60;
     }
+    .bold{
+        font-weight: 700;;
+    }
+
     fieldset {
         margin-bottom: 30px;
         padding: 10px;
     }
     fieldset legend {
+        font-size: 14px;
+    }
+
+    .viewsource .trigger {
+        background-color: #366097;
+        height: 20px;
+        color: #fff;
+        border: 1px solid #aaa;
+        cursor: pointer;
+    }
+    .viewsource .board {
+        display: none;
+        border: 1px solid #aaa;
+    }
+
+    .ks-popup {
+        position: absolute;
+        left: -999em;
+        top: -999em;
+        background-color: #fff;
+        border: 1px solid #aaa;
+        padding: 10px;
+    }
+    .infomation {
+        border: 5px solid rgba(238,238,238,0.8);
+        background-color: rgba(238, 238, 238, 0.44);
+    }
+    .infomation dt {
+        font-weight: 700;
         font-size: 14px;
     }
 </style>
@@ -128,10 +166,9 @@ KISSY自带的ComboBox基本上能满足80%的需求，但它对某些场景有�
 
 
 <script>
-    var S = KISSY;
-    if (S.Config.debug) {
+    if (KISSY.Config.debug) {
         var srcPath = "../../../";
-        S.config({
+        KISSY.config({
             packages:[
                 {
                     name:"gallery",
@@ -143,248 +180,356 @@ KISSY自带的ComboBox基本上能满足80%的需求，但它对某些场景有�
         });
     }
 
-    function printLog(data) {
-        return S.substitute("当前选择了“{text}”，其值为“{value}”", data || {value: "", text: ""})
-    }
+    KISSY.ready(function(S) {
+        var $ = S.all;
+
+        $('.example').each(function($example) {
+            var id = $example.attr('data-source'),
+                $trigger = $example.one('.trigger');
+            var source = $(id).html();
+
+            var $board = $example.one('.board', '.viewsource');
+
+            $board.html(source);
+
+            $trigger.on('click', function(ev) {
+                $board.toggle();
+            });
+        });
+
+        S.use('overlay', function(S, Overlay) {
+
+            $('.tip').each(function($el) {
+                var id = $el.attr('href'),
+                    tip = $(id).html();
+
+                new Overlay.Popup({
+                    trigger: $el,
+                    triggerType: "mouse",
+                    content: tip,
+                    align: {
+                        node: $el,
+                        points: ["tl","bl"]
+                    }
+                });
+            });
+        });
+    });
+</script>
+<script type="text/javascript">
+
+// 打印信息。
+function printLog(data) {
+    return KISSY.substitute("当前选择了“{text}”，其值为“{value}”", data || {value: "", text: ""})
+}
+// 用来测试大数据量渲染性能的上限。
+var MaxItemCount = 2000;
 </script>
 
-<fieldset id="demo1">
+<fieldset class="example" id="demo1" data-source="#source1">
     <legend>从现有结构中渲染</legend>
-    <div class="droplist">
-        <div class="drop-trigger"><i class="caret"></i></div>
-        <input type="text" class="drop-text" />
-        <input type="hidden" class="drop-value" />
+
+    <div class="control">
+        <div class="droplist">
+            <div class="drop-trigger"><i class="caret"></i></div>
+            <div class="drop-wrap">
+                <input type="text" class="drop-text" />
+            </div>
+            <input type="hidden" class="drop-value" />
+        </div>
+
+        <span class="log"></span>
     </div>
 
-    <span class="log"></span>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board">
+
+        </pre>
+    </div>
 </fieldset>
-<script>
-    /**
-     * 在现有的符合要求的结构上进行渲染。
-     * 优势是结构简单。渲染时基本不会对dom结构做变更，节省初始化开销。
-     */
-    S.use('gallery/droplist/0.1/index', function (S, DropList) {
-        var droplist = new DropList({
-            selectedItem: {
-                value: "4",
-                text: "列表项4"
-            },
-            srcNode: ".droplist",
-            // 直接传入数据。
-            // 数据格式必须有text和value。且value不允许重复。
-            dataSource: [
-                {text: "列表项1", value: 1},
-                {text: "列表项2", value: 2},
-                {text: "列表项3", value: 3},
-                {text: "列表项4", value: 4},
-                {text: "列表项5", value: 5},
-                {text: "列表项6", value: 6},
-                {text: "列表项7", value: 7},
-                {text: "列表项8", value: 8},
-                {text: "列表项9", value: 9},
-                {text: "列表项10", value: 10},
-                {text: "列表项11", value: 11}
-            ]
-        });
+<script id="source1">
+/**
+ * 在现有的符合要求的结构上进行渲染。
+ * 优势是结构简单。渲染时基本不会对dom结构做变更，节省初始化开销。
+ */
+KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+    var $log = S.one('.log', '#demo1');
 
-        var elLog = S.one('.log', '#demo1');
-        droplist.on('change', function(ev) {
-            var data = ev.data;
-            elLog.html(printLog(data));
-        });
-
-        droplist.render();
+    var droplist = new DropList({
+        // 设置初始化选择项。
+        selectedItem: {
+            value: "4",
+            text: "列表项4"
+        },
+        // 现有的结构选择器或者元素
+        srcNode: ".droplist",
+        // 直接传入数据。
+        // 数据格式需要有text和value。且value不允许重复。
+        // <a class="tip" href="#standard">什么是标准数据</a>
+        dataSource: [
+            {text: "列表项1", value: 1},
+            {text: "列表项2", value: 2},
+            {text: "列表项3", value: 3},
+            {text: "列表项4", value: 4},
+            {text: "列表项5", value: 5},
+            {text: "列表项6", value: 6},
+            {text: "列表项7", value: 7},
+            {text: "列表项8", value: 8},
+            {text: "列表项9", value: 9},
+            {text: "列表项10", value: 10},
+            {text: "列表项11", value: 11}
+        ]
     });
+
+    // 值发生变化的时候触发change事件
+    droplist.on('change', function(ev) {
+        var data = ev.data;
+        $log.html(printLog(data));
+    });
+
+    // render以后才渲染结构。包括事件绑定，和初始化选择触发。
+    // 注意：同步传入的数据，如果在render之后绑定事件，则一些初始的事件是不会被执行的。
+    droplist.render();
+});
 </script>
 
-<fieldset id="demo2">
+<fieldset class="example" id="demo2" data-source="#source2">
     <legend>从现有的select节点中渲染</legend>
-    <select name="testName" class="tobedroplist">
-        <option value="1">option1</option>
-        <option value="2">option2</option>
-        <option value="3">option3</option>
-        <option value="4">option4</option>
-    </select>
 
-    <span class="log"></span>
-    <ul>
-        <li>
-            <a class="J_ToSelect" data-value="4" href="#">选择value为4的项</a>
-        </li>
-        <li>
-            <a class="J_ToSelect" data-value="2" href="#">选择value为2的项</a>
-        </li>
-    </ul>
+    <div class="control">
+        <select name="testName" class="tobedroplist">
+            <option value="1">option1</option>
+            <option value="2">option2</option>
+            <option value="3">option3</option>
+            <option value="4">option4</option>
+        </select>
+
+        <span class="log"></span>
+        <ul>
+            <li>
+                <a class="J_ToSelect" data-value="4" href="#">选择value为4的项</a>
+            </li>
+            <li>
+                <a class="J_ToSelect" data-value="2" href="#">选择value为2的项</a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board">
+
+        </pre>
+    </div>
+
 </fieldset>
-<script type="text/javascript">
-    S.use('gallery/droplist/0.1/index', function (S, DropList) {
-        var $select = S.one('.tobedroplist', '#demo2'),
-            $log = S.one('.log', '#demo2');
+<script id="source2" type="text/javascript">
+KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+    var $select = S.one('.tobedroplist', '#demo2'),
+        $log = S.one('.log', '#demo2');
 
-        // decorate方法是DropList对象的静态方法。
-        var droplist = DropList.decorate($select[0]);
+    // decorate方法是DropList对象的静态方法。
+    // 把原生select元素渲染成droplist对象
+    var droplist = DropList.decorate($select[0]);
 
-        droplist.on('change', function(ev) {
-            $log.html(printLog(ev.data));
-        });
-
-        droplist.render();
-
-        S.all('.J_ToSelect').on('click', function(ev) {
-            ev.halt();
-            var target = ev.currentTarget,
-                value = S.one(target).attr('data-value');
-
-            droplist.selectByValue(value);
-        });
+    droplist.on('change', function(ev) {
+        $log.html(printLog(ev.data));
     });
+
+    droplist.render();
+
+    S.all('.J_ToSelect').on('click', function(ev) {
+        ev.halt();
+        var target = ev.currentTarget,
+            value = S.one(target).attr('data-value');
+
+        // 通过selectByValue方法，根据value值设置选择项。
+        droplist.selectByValue(value);
+    });
+});
 </script>
 
-<fieldset id="demo3">
+<fieldset class="example" data-source="#source3" id="demo3">
     <legend>脚本动态创建，列表异步获取<span class="bright">标准</span>数据</legend>
 
+    <div class="control"></div>
     <span class="droplistwrap"></span>
 
     <span class="log"></span>
-</fieldset>
-<script type="text/javascript">
-    S.use('gallery/droplist/0.1/index', function (S, DropList) {
-        var $log = S.one('.log', '#demo3');
-
-        // 不设置初始化选择值
-        var droplist = new DropList({
-            // 异步获取数据。
-            // 这里返回的数据格式是有要求的，格式如下。
-            /**
-             * {
-             *     result: true/false, // 判断返回是否正常。
-             *     msg: "", // 如果result为false，则默认会alert显示msg
-             *     list: [{value: "", text: ""}] // 列表数据 数组。数据对象包含value和text。且value值不允许重复。且字段值都只能是字符串。
-             * }
-             */
-            dataSource: "./getlist.html?type=1",
-            // 指定插入的位置。
-            insertion: '#demo3 .droplistwrap'
-        });
-        droplist.on('change', function(ev) {
-            var log = printLog(ev.data);
-            $log.html(log);
-        });
-        droplist.render();
-    });
-</script>
-
-<fieldset id="demo4">
-    <legend>脚本动态创建，列表异步获取<span class="bright">非标准</span>数据</legend>
-
-    <span class="log"></span>
-</fieldset>
-<script type="text/javascript">
-    S.use('gallery/droplist/0.1/index', function (S, DropList) {
-        var $log = S.one('.log', '#demo4');
-
-        // 不设置初始化选择值
-        var droplist = new DropList({
-            // 异步获取数据。
-            // 可以是KISSY.io的参数。
-            dataSource: {
-                url: "./getlist3.html",
-                // 默认就是json格式
-                dataType: "json",
-                // 设置异步请求的参数
-                data: {
-                    parama: 1,
-                    paramb: 2
-                }
-            },
-            selectedItem: {
-                value: "8",
-                text: "890"
-            },
-            // 指定插入的位置。
-            insertion: function(el) {
-                S.one(el).insertBefore($log);
-            },
-            // 通过对异步返回的数据进行调整。
-            // 使得异步数据也满足约定的标准。
-            // 主要是确保有result和list数据。
-            // 这里不对*列表项*进行适配。
-            fnReceive: function(dt) {
-                var data = dt.data,
-                        result = data && data.length > 0;
-
-                if(!result) {
-                    alert("您还没有创建数据");
-                }
-
-                return {
-                    result: result,
-                    list: data
-                }
-            },
-            // 通过数据适配函数来调整异步获取的数据。
-            // 使得*列表项*的数据结构符合约定的标准。
-            fnDataAdapter: function(list) {
-                var result = [];
-                S.each(list, function(it) {
-                    result.push({
-                        text: it.text,
-                        value: it.id
-                    });
-                });
-                return result;
-            }
-        });
-        droplist.on('change', function(ev) {
-            // 获取当前选项的数据。
-            var data = droplist.getSelectedData();
-            $log.html(printLog(data));
-        });
-        droplist.render();
-    });
-</script>
-
-<fieldset id="demo5">
-    <legend>DropList组件对大数据量的渲染</legend>
-    <div class="droplist" id="large">
-        <div class="drop-trigger"><i class="caret"></i></div>
-        <input type="text" class="drop-text" />
-        <input type="hidden" class="drop-value" />
     </div>
 
-    <span class="log"></span>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board">
+
+        </pre>
+    </div>
+
 </fieldset>
+<script id="source3" type="text/javascript">
+KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+    var $log = S.one('.log', '#demo3');
 
-<script type="text/javascript">
-    var MaxItemCount = 2000;
-    S.use('gallery/droplist/0.1/index', function (S, DropList) {
-        var data = [];
-        for(var i = 0;i< MaxItemCount; i++) {
-            data.push({value: i.toString(), text: 'option' + i});
-        }
-
-        var droplist = new DropList({
-            selectedItem: {
-                value: "4",
-                text: "option4"
-            },
-            srcNode: "#large",
-            // 直接传入数据。
-            // 数据格式必须有text和value。且value不允许重复。
-            dataSource: data
-        });
-
-        var elLog = S.one('.log', '#demo5');
-        droplist.on('change', function(ev) {
-            var data = ev.data;
-            elLog.html(printLog(data));
-        });
-
-        droplist.render();
+    // 不设置初始化选择值
+    var droplist = new DropList({
+        // 异步获取数据。
+        // 返回的数据格式要<a href="#standard" class="tip">符合约定</a>。
+        dataSource: "./getlist.html?type=1",
+        // 指定插入的位置。
+        insertion: '#demo3 .droplistwrap'
     });
+    droplist.on('change', function(ev) {
+        var log = printLog(ev.data);
+        $log.html(log);
+    });
+    droplist.render();
+});
 </script>
 
-<fieldset>
+<fieldset class="example" data-source="#source4" id="demo4">
+    <legend>脚本动态创建，列表异步获取<span class="bright">非标准</span>数据</legend>
+
+    <div class="control">
+
+        <span class="log"></span>
+    </div>
+
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board">
+
+        </pre>
+    </div>
+
+</fieldset>
+<script id="source4" type="text/javascript">
+KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+    var $log = S.one('.log', '#demo4');
+
+    // 不设置初始化选择值
+    var droplist = new DropList({
+        // 异步获取数据。
+        // 可以是KISSY.io的参数。
+        dataSource: {
+            url: "./getlist3.html",
+            // 默认就是json格式
+            dataType: "json",
+            // 设置异步请求的参数
+            data: {
+                parama: 1,
+                paramb: 2
+            }
+        },
+        selectedItem: {
+            value: "8",
+            text: "890"
+        },
+        // 指定插入的位置。参数el为droplist对象的容器节点。
+        insertion: function(el) {
+            S.one(el).insertBefore($log);
+        },
+        // 通过对异步返回的数据进行调整。
+        // 使得异步数据也满足约定的标准。
+        // 主要是确保有result和list数据。
+        // 这里<em class="bright">不</em>对<em class="bold">列表项</em>进行适配。
+        fnReceive: function(dt) {
+            var data = dt.data,
+                    result = data && data.length > 0;
+
+            if(!result) {
+                alert("您还没有创建数据");
+            }
+
+            return {
+                result: result,
+                list: data
+            }
+        },
+        // 通过数据适配函数来调整异步获取的数据。
+        // 使得<em class="bold">列表项</em>的数据结构符合约定的标准。
+        fnDataAdapter: function(list) {
+            var result = [];
+            S.each(list, function(it) {
+                result.push({
+                    text: it.text,
+                    value: it.id
+                });
+            });
+            return result;
+        }
+    });
+    droplist.on('change', function(ev) {
+        // 获取当前选项的数据。
+        var data = droplist.getSelectedData();
+        $log.html(printLog(data));
+    });
+    droplist.render();
+});
+</script>
+
+<fieldset class="example" id="demo5" data-source="#source5">
+    <legend>DropList组件对大数据量的渲染</legend>
+    <div class="control">
+        <div class="droplist" id="large">
+            <div class="drop-trigger"><i class="caret"></i></div>
+            <div class="drop-wrap">
+                <input type="text" class="drop-text" />
+            </div>
+            <input type="hidden" class="drop-value" />
+        </div>
+
+        <span class="log"></span>
+    </div>
+
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board">
+
+        </pre>
+    </div>
+
+</fieldset>
+
+<script id="source5" type="text/javascript">
+KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+    var data = [];
+    for(var i = 0;i< MaxItemCount; i++) {
+        data.push({value: i.toString(), text: 'option' + i});
+    }
+
+    var droplist = new DropList({
+        selectedItem: {
+            value: "4",
+            text: "option4"
+        },
+        srcNode: "#large",
+        // 直接传入数据。
+        // 数据格式必须有text和value。且value不允许重复。<a href="#standard" class="tip">格式说明</a>
+        dataSource: data
+    });
+
+    var elLog = S.one('.log', '#demo5');
+    droplist.on('change', function(ev) {
+        var data = ev.data;
+        elLog.html(printLog(data));
+    });
+
+    droplist.render();
+});
+</script>
+
+<fieldset id="demo6" data-source="#source6" class="example">
     <link href="http://g.tbcdn.cn/kissy/k/1.3.1/??button/assets/dpl.css,calendar/assets/dpl.css,menu/assets/dpl.css,combobox/assets/dpl.css,menubutton/assets/dpl.css,overlay/assets/dpl.css,split-button/assets/dpl.css,tabs/assets/dpl.css,toolbar/assets/dpl.css,tree/assets/dpl.css?20130815" rel="stylesheet"/>
     <style type="text/css">
         .ks-popupmenu {
@@ -394,33 +539,67 @@ KISSY自带的ComboBox基本上能满足80%的需求，但它对某些场景有�
     </style>
 
     <legend>其他下拉菜单组件对大数据量的渲染</legend>
-    <div class="ks-combobox" id="J_Combox">
-        <div class="ks-combobox-trigger">
-            <div class="ks-combobox-trigger-inner">▼</div>
-        </div>
-        <div class="ks-combobox-input-wrap">
-            <input class="ks-combobox-input">
-        </div>
-    </div>
-    <em>点击下拉箭头以后，浏览器会僵住，请耐心等待。。。</em>
-</fieldset>
-<script type="text/javascript">
-    KISSY.use('combobox', function(S, ComboBox) {
-        var data = [];
-        for(var i = 0;i< MaxItemCount; i++) {
-            data.push('option' + i);
-        }
 
-        var basicComboBox = new ComboBox({
-            srcNode: S.one("#J_Combox"),
-            width: 200,
-            dataSource: new ComboBox.LocalDataSource({
-                data: data
-            })
-        });
-        basicComboBox.render();
-    })
+    <div class="control">
+        <div class="ks-combobox" id="J_Combox">
+            <div class="ks-combobox-trigger">
+                <div class="ks-combobox-trigger-inner">▼</div>
+            </div>
+            <div class="ks-combobox-input-wrap">
+                <input class="ks-combobox-input">
+            </div>
+        </div>
+        <em>点击下拉箭头以后，浏览器会僵住，请耐心等待。。。</em>
+    </div>
+
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board">
+
+        </pre>
+    </div>
+
+</fieldset>
+<script id="source6" type="text/javascript">
+// KISSY ComboBox 组件。
+KISSY.use('combobox', function(S, ComboBox) {
+    var data = [];
+    for(var i = 0;i< MaxItemCount; i++) {
+        data.push('option' + i);
+    }
+
+    var basicComboBox = new ComboBox({
+        srcNode: S.one("#J_Combox"),
+        width: 200,
+        dataSource: new ComboBox.LocalDataSource({
+            data: data
+        })
+    });
+    basicComboBox.render();
+});
 </script>
+
+
+<div id="standard" class="infomation">
+    <dl>
+        <dt>标准数据格式约定</dt>
+        <dd>
+            <pre>
+{
+    result: true, // 判断返回是否正常。
+    msg: "", // 如果result为false，则默认会alert显示msg
+    list: [  // 列表数据，数组。
+        // 每一个数据对象包含value和text。
+        // 且value值不允许重复。且字段值都只能是字符串。
+        {value: "", text: ""}
+    ]
+}
+            </pre>
+        </dd>
+    </dl>
+</div>
 
 </body>
 </html>
