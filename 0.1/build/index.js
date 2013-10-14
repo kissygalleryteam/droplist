@@ -578,12 +578,12 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
     S.augment(DropList, S.EventTarget, /** @lends DropList.prototype*/{
         _init: function(config) {
             var cfg = S.merge(def, config);
-
+            this.cfg = cfg;
+            
             if(cfg.srcNode) {
                 this._buildWrap(cfg.srcNode);
             }
 
-            this.cfg = cfg;
             this._data = new DataList({
                 selected: cfg.selectedItem
             });
