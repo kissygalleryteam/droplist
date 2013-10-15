@@ -3,7 +3,7 @@
  * @author wuake<ake.wgk@taobao.com>
  * @module droplist
  **/
-KISSY.add(function (S, D, E, DataList, View) {
+KISSY.add(function (S, D, E, IO, DataList, View) {
     var EMPTY = '',
         def = {
             hideDelay: 100,
@@ -11,6 +11,7 @@ KISSY.add(function (S, D, E, DataList, View) {
             fieldName: "",
             // droplist容器的append处理逻辑
             insertion: document.body,
+//            remote:
             fnDataAdapter: function(data) {
                 return data;
             },
@@ -71,7 +72,7 @@ KISSY.add(function (S, D, E, DataList, View) {
         _init: function(config) {
             var cfg = S.merge(def, config);
             this.cfg = cfg;
-            
+
             if(cfg.srcNode) {
                 this._buildWrap(cfg.srcNode);
             }
@@ -185,7 +186,7 @@ KISSY.add(function (S, D, E, DataList, View) {
                 }
             }
 
-            S.io(ajaxParam);
+            IO(ajaxParam);
         },
         _bindElement: function() {
             var self = this,
@@ -233,7 +234,9 @@ KISSY.add(function (S, D, E, DataList, View) {
             view.on('UIRender', function(ev) {
                 var elWrap = view.elWrap;
 
+                // 设置列表浮层不可选择。使得点击操作不会获取焦点。
                 D.unselectable(elWrap);
+                // chrome和firefox下，还需要阻止掉mousedown默认事件。
                 E.on(elWrap, 'mousedown', function(ev) {
                     ev.preventDefault();
                 });
@@ -308,6 +311,7 @@ KISSY.add(function (S, D, E, DataList, View) {
         },
         _bindInput: function(elInput) {
             var self = this,
+                cfg = self.cfg,
                 datalist = self._data,
                 view = self._view;
 
@@ -371,13 +375,12 @@ KISSY.add(function (S, D, E, DataList, View) {
                     return;
                 }
 
-                datalist.filter({
-                    text: kw
-                }, function(list) {
+                function render(list) {
                     // 如果进行搜索，则表示当前选择项失效。
                     // 直接设置数据为空即可。若通过select方法来取消选择，会联动数据回填，导致输入框的内容不符合预期。
                     var prevData = datalist.selected;
                     datalist.selected = view.focused = undefined;
+
                     // 但是若数据变化了，还是需要触发外部事件，便于响应处理
                     if(prevData !== undefined) {
                         self.fire('change', {data: undefined});
@@ -389,8 +392,50 @@ KISSY.add(function (S, D, E, DataList, View) {
                         view.render(list);
                         self.show();
                     }
-                });
+                }
+
+                var data = {
+                    text: kw
+                };
+
+                if(cfg.remote) {
+                    self._remoteFilter(data, render);
+                }else {
+                    self._syncFilter(data, render);
+                }
             });
+        },
+        _remoteFilter: function(param, callback) {
+            var cfg = this.cfg;
+
+            var ajaxParam = S.merge({}, cfg.remote, param);
+
+            this._fetch(ajaxParam, function(data) {
+                callback && callback(data);
+            });
+        },
+        _syncFilter: function(data, callback) {
+            var self = this,
+                datalist = self._data,
+                result = [];
+
+            // 筛选出符合的元素
+            S.each(datalist._list, function(it) {
+                var yep = false;
+                S.each(data, function(val, key) {
+                    if(it[key].indexOf(val) !== -1) {
+                        yep = true;
+                        return false;
+                    }
+                });
+
+                if(yep) {
+                    result.push(it);
+                }
+            });
+
+            // 异步回调处理。
+            callback && callback(result);
         },
         _stopHideTimer: function() {
             var timer = this.timer;
@@ -435,7 +480,7 @@ KISSY.add(function (S, D, E, DataList, View) {
 
     return DropList;
 
-}, {requires:['dom', 'event', './datalist', './viewscroll']});
+}, {requires:['dom', 'event', 'ajax', './datalist', './viewscroll']});
 
 /*
  ToDo

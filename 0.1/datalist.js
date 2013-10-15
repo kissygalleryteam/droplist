@@ -39,28 +39,6 @@ KISSY.add(function(S) {
             });
             return result;
         },
-        filter: function(data, callback) {
-            var self = this,
-                result = [];
-
-            // 筛选出符合的元素
-            S.each(self._list, function(it) {
-                var yep = false;
-                S.each(data, function(val, key) {
-                    if(it[key].indexOf(val) !== -1) {
-                        yep = true;
-                        return false;
-                    }
-                });
-
-                if(yep) {
-                    result.push(it);
-                }
-            });
-
-            // 异步回调处理。
-            callback && callback(result);
-        },
         select: function(id) {
             var data;
             if(id != undefined) {
