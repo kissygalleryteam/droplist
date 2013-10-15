@@ -232,16 +232,10 @@ KISSY.add(function (S, D, E, DataList, View) {
 
             view.on('UIRender', function(ev) {
                 var elWrap = view.elWrap;
-                E.on(elWrap, 'click', function() {
-                    self._stopHideTimer();
-                    self._keepFocus();
-                });
 
-                S.UA.chrome && E.on(elWrap, 'scroll', function(ev) {
-                    self._stopHideTimer();
-                    try{
-                        self._keepFocus();
-                    }catch(ex) {}
+                D.unselectable(elWrap);
+                E.on(elWrap, 'mousedown', function(ev) {
+                    ev.preventDefault();
                 });
             });
 
