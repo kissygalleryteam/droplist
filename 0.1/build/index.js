@@ -386,8 +386,8 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
          * @param data
          */
         select: function(data) {
-            var id = data ? data._id : false,
-                elItem = (id !== false) && D.get('#' + TEMPLATES.prefixId + id, this.elList);
+            var elItem = this.getElement(data);
+
             if(!elItem) {
                 elItem = data = undefined;
             }
@@ -396,19 +396,12 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
 
             this.fire('select', {data: data});
         },
-        _selectByElement: function(elItem, data) {
-            this._setElementClass(elItem, this.selected, TEMPLATES.selectedCls);
-
-            this.selected = data;
-            this.focused = data;
-        },
         /**
          * @public 根据clientId 聚焦指定的元素。若不存在，则取消聚焦
          * @param id
          */
         _focus: function(data) {
-            var id = data ? data._id : false,
-                elItem = (id !== false) && D.get('#' + TEMPLATES.prefixId+id, this.elList);
+            var elItem = this.getElement(data);
 
             // TODO 列表未渲染出来时如何处理？
             if(!elItem) {
@@ -418,11 +411,18 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
             this._setElementClass(elItem, this.focused, TEMPLATES.focusCls);
 
             this.focused = data;
+            this.scrollIntoView(data);
             this.fire('focus', {data: data});
+        },
+        _selectByElement: function(elItem, data) {
+            this._setElementClass(elItem, this.selected, TEMPLATES.selectedCls);
+
+            this.selected = data;
+            this.focused = data;
         },
         _setElementClass: function(el, data, cls) {
             if(data) {
-                var elItem = D.get('#' + TEMPLATES.prefixId + data._id, this.elList);
+                var elItem = this.getElement(data);
                 elItem && D.removeClass(elItem, cls);
             }
             el && D.addClass(el, cls);
@@ -494,10 +494,20 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
         align: function(align) {
             this.layer.set('align', align);
         },
+        getElement: function(data) {
+            if(data && data._id) {
+                return D.get('#' + TEMPLATES.prefixId + data._id, this.elList);
+            }else {
+                return;
+            }
+        },
         /**
          * TODO 指定项显示在当前可视视图内
          */
-        scrollIntoView: function() {
+        scrollIntoView: function(data) {
+            var elItem = this.getElement(data);
+
+            D.scrollIntoView(elItem, this.elWrap);
 
         }
     });
