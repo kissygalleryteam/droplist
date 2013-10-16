@@ -1,11 +1,11 @@
 /*
 combined files : 
 
-gallery/droplist/0.1/datalist
-gallery/droplist/0.1/lap
-gallery/droplist/0.1/viewscroll
-gallery/droplist/0.1/droplist
-gallery/droplist/0.1/index
+gallery/droplist/0.2/datalist
+gallery/droplist/0.2/lap
+gallery/droplist/0.2/viewscroll
+gallery/droplist/0.2/droplist
+gallery/droplist/0.2/index
 
 */
 /**
@@ -13,7 +13,7 @@ gallery/droplist/0.1/index
  * 初次异步获取数据，或直接使用数据源或每次都异步获取数据。
  */
 
-KISSY.add('gallery/droplist/0.1/datalist',function(S) {
+KISSY.add('gallery/droplist/0.2/datalist',function(S) {
     var UNIQUEKEY = "_id",
         QUEUEINDEX = '_index',
 
@@ -29,47 +29,24 @@ KISSY.add('gallery/droplist/0.1/datalist',function(S) {
         _init: function(cfg) {
 
             cfg = this.cfg = S.merge(def, cfg);
+            this.cache = {};
+            this._dataMap = {}
 
             this._initSelected = cfg.selected;
         },
-        dataFactory: function(list) {
-            this._dataFactory(list);
-        },
         getDataByValue: function(value) {
-            if(!this._list) {
+            if(!this.getDataSource()) {
                 return;
             }
 
             var result;
-            S.each(this._list, function(it) {
+            S.each(this.getDataSource(), function(it) {
                 if(it.value === value) {
                     result = it;
                     return false;
                 }
             });
             return result;
-        },
-        filter: function(data, callback) {
-            var self = this,
-                result = [];
-
-            // 筛选出符合的元素
-            S.each(self._list, function(it) {
-                var yep = false;
-                S.each(data, function(val, key) {
-                    if(it[key].indexOf(val) !== -1) {
-                        yep = true;
-                        return false;
-                    }
-                });
-
-                if(yep) {
-                    result.push(it);
-                }
-            });
-
-            // 异步回调处理。
-            callback && callback(result);
         },
         select: function(id) {
             var data;
@@ -90,12 +67,21 @@ KISSY.add('gallery/droplist/0.1/datalist',function(S) {
         getSelectedData: function() {
             return this.selected || this._initSelected;
         },
+        setDataSource: function(kw, data) {
+            this.cache[kw] = data;
+            this._list = data;
+        },
+        getDataSource: function(kw) {
+            kw = kw || "";
+
+            return this.cache[kw];
+        },
         // 根据新数据，重新构造数据。
-        _dataFactory: function(list) {
+        dataFactory: function(list) {
             var self = this,
                 prevSelected = self.getSelectedData(),
                 result = [],
-                map = this._dataMap = {};
+                map = this._dataMap;
 
             self.selected = undefined;
 
@@ -118,7 +104,7 @@ KISSY.add('gallery/droplist/0.1/datalist',function(S) {
 
             delete self._initSelected;
 
-            this._list = result;
+            return result;
         }
     });
 
@@ -128,7 +114,7 @@ KISSY.add('gallery/droplist/0.1/datalist',function(S) {
  * Large Array Processor (LAP)
  * @author ake<ake.wgk@taobao.com | wgk1987@gmail.com>
  */
-KISSY.add('gallery/droplist/0.1/lap',function(S) {
+KISSY.add('gallery/droplist/0.2/lap',function(S) {
 
     function invoke() {
         var args = S.makeArray(arguments);
@@ -245,7 +231,7 @@ KISSY.add('gallery/droplist/0.1/lap',function(S) {
  * 单页 scroll式的浮层。没有分页，没有分组。
  */
 
-KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) {
+KISSY.add('gallery/droplist/0.2/viewscroll',function(S, Overlay, Template, Lap) {
     var D = S.DOM, E = S.Event;
 
     var EMPTY = "",
@@ -280,17 +266,37 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
                 self.focused = undefined;
             })
         },
+        _UIRender: function() {
+            var self = this,
+                layer = self.layer,
+                elList = self.elList;
+
+            var elWrap = layer.get('el'),
+                elContent = layer.get('contentEl');
+
+            elContent.append(elList);
+
+            self._bindList();
+
+            /**
+             * @public 在渲染列表容器的时候触发。droplist对象用来进行焦点控制。
+             * @requires this.elWrap this.fire('UIRender');
+             */
+            self.elWrap = elWrap;
+            self.fire('UIRender');
+        },
+        emptyRender: function() {
+            this._list = [];
+
+            D.html(this.elList, "empty search");
+            this.visible(false);
+        },
         /**
          * @public 渲染指定的数据
          * TODO 完善+限定高度的渲染。
          * @param list
-         * @return boolean 若返回值为false，则列表元素隐藏。其他情况下显示
          */
         render: function(list) {
-            if(!list || list.length == 0) {
-                return false;
-            }
-
             var self = this,
                 lap = self.lap,
                 fragment = document.createDocumentFragment();
@@ -331,7 +337,7 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
 
             lap.start();
 
-            return true;
+            self.visible(true);
         },
         _itemRender: function(data) {
             if(!data) return null;
@@ -344,25 +350,6 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
             }
 
             return el;
-        },
-        _UIRender: function() {
-            var self = this,
-                layer = self.layer,
-                elList = self.elList;
-
-            var elWrap = layer.get('el'),
-                elContent = layer.get('contentEl');
-
-            elContent.append(elList);
-
-            self._bindList();
-
-            /**
-             * @public 在渲染列表容器的时候触发。droplist对象用来进行焦点控制。
-             * @requires this.elWrap this.fire('UIRender');
-             */
-            self.elWrap = elWrap;
-            self.fire('UIRender');
         },
         _bindList: function() {
             var self = this,
@@ -386,8 +373,8 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
          * @param data
          */
         select: function(data) {
-            var id = data ? data._id : false,
-                elItem = (id !== false) && D.get('#' + TEMPLATES.prefixId + id, this.elList);
+            var elItem = this.getElement(data);
+
             if(!elItem) {
                 elItem = data = undefined;
             }
@@ -396,19 +383,12 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
 
             this.fire('select', {data: data});
         },
-        _selectByElement: function(elItem, data) {
-            this._setElementClass(elItem, this.selected, TEMPLATES.selectedCls);
-
-            this.selected = data;
-            this.focused = data;
-        },
         /**
          * @public 根据clientId 聚焦指定的元素。若不存在，则取消聚焦
          * @param id
          */
         _focus: function(data) {
-            var id = data ? data._id : false,
-                elItem = (id !== false) && D.get('#' + TEMPLATES.prefixId+id, this.elList);
+            var elItem = this.getElement(data);
 
             // TODO 列表未渲染出来时如何处理？
             if(!elItem) {
@@ -418,11 +398,18 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
             this._setElementClass(elItem, this.focused, TEMPLATES.focusCls);
 
             this.focused = data;
+            this.scrollIntoView(data);
             this.fire('focus', {data: data});
+        },
+        _selectByElement: function(elItem, data) {
+            this._setElementClass(elItem, this.selected, TEMPLATES.selectedCls);
+
+            this.selected = data;
+            this.focused = data;
         },
         _setElementClass: function(el, data, cls) {
             if(data) {
-                var elItem = D.get('#' + TEMPLATES.prefixId + data._id, this.elList);
+                var elItem = this.getElement(data);
                 elItem && D.removeClass(elItem, cls);
             }
             el && D.addClass(el, cls);
@@ -471,21 +458,26 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
                 this.fire('itemSelect', {id: this.focused._id});
             }
         },
-        emptyRender: function() {
-            this.visible(false);
-        },
         /**
          * @public 显示和隐藏
          * @param isVisible
          */
-        visible: function(isVisible) {
-            if(isVisible) {
+        visible: function(visible) {
+            var isVisible = this.getVisible(),
+                willVisible = visible === undefined ? !isVisible : visible;
+
+            if(isVisible === willVisible) return;
+
+            if(willVisible) {
                 this.layer.show();
                 this.fire('show');
             }else {
                 this.layer.hide();
                 this.fire('hide');
             }
+        },
+        getVisible: function() {
+            return this.layer.get('visible');
         },
         /**
          * @public 浮层的定位。按照overlay的align定义。
@@ -494,10 +486,20 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
         align: function(align) {
             this.layer.set('align', align);
         },
+        getElement: function(data) {
+            if(data && data._id) {
+                return D.get('#' + TEMPLATES.prefixId + data._id, this.elList);
+            }else {
+                return;
+            }
+        },
         /**
-         * TODO 指定项显示在当前可视视图内
+         * 指定项显示在当前可视视图内
          */
-        scrollIntoView: function() {
+        scrollIntoView: function(data) {
+            var elItem = this.getElement(data);
+
+            D.scrollIntoView(elItem, this.elWrap);
 
         }
     });
@@ -511,7 +513,7 @@ KISSY.add('gallery/droplist/0.1/viewscroll',function(S, Overlay, Template, Lap) 
  * @author wuake<ake.wgk@taobao.com>
  * @module droplist
  **/
-KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
+KISSY.add('gallery/droplist/0.2/droplist',function (S, D, E, IO, DataList, View) {
     var EMPTY = '',
         def = {
             hideDelay: 100,
@@ -519,6 +521,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
             fieldName: "",
             // droplist容器的append处理逻辑
             insertion: document.body,
+//            remote:
             fnDataAdapter: function(data) {
                 return data;
             },
@@ -569,9 +572,6 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
      * @extends Base
      */
     function DropList() {
-//        var self = this;
-        //调用父类构造函数
-//        DropList.superclass.constructor.apply(self, comConfig);
 
         this._init.apply(this, arguments);
     }
@@ -579,7 +579,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
         _init: function(config) {
             var cfg = S.merge(def, config);
             this.cfg = cfg;
-            
+
             if(cfg.srcNode) {
                 this._buildWrap(cfg.srcNode);
             }
@@ -591,8 +591,6 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
 
             this._bindControl();
 
-            this.isVisible = false;
-
             this.timer = {
                 search: null,
                 hide: null
@@ -601,7 +599,8 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
         render: function() {
             var self = this,
                 cfg = self.cfg,
-                elWrap = self.elWrap;
+                elWrap = self.elWrap,
+                datalist = self._data;
 
             if(!elWrap) {
                 self._buildWrap();
@@ -631,36 +630,43 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
             // render时才做初始化数据处理。
             var ds = cfg.dataSource;
 
+            function setDataSource(data) {
+                var dt = self.dataFactory(data);
+                datalist.setDataSource("", dt);
+            }
+
             if(S.isArray(ds)) {
 
-                self.dataFactory(ds);
-
+                setDataSource(ds)
 
             }else if(S.isString(ds)) {
 
                 this._fetch({
                     url: ds
                 }, function(data) {
-                    self.dataFactory(data);
+
+                    setDataSource(data);
                 });
 
             }else if(S.isPlainObject(ds)) {
 
                 this._fetch(ds, function(data) {
-                    self.dataFactory(data);
+
+                    setDataSource(data);
                 });
 
             }else if(S.isFunction(ds)) {
 
                 ds(function(data) {
-                    self.dataFactory(data);
+
+                    setDataSource(data);
                 });
 
             }
         },
         dataFactory: function(data) {
             var dt = this.cfg.fnDataAdapter(data);
-            this._data.dataFactory(dt);
+            return this._data.dataFactory(dt);
         },
         _fetch: function(param, callback) {
             var self = this,
@@ -693,7 +699,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 }
             }
 
-            S.io(ajaxParam);
+            IO(ajaxParam);
         },
         _bindElement: function() {
             var self = this,
@@ -702,25 +708,18 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 view = self._view,
                 datalist = self._data;
 
-            self.on('toggle', function() {
-                var isVisible = self.isVisible;
+            E.on(this.elTrigger, 'click', function(ev) {
+                var isVisible = self._view.getVisible();
+
+                self._stopHideTimer();
                 // focus会触发事件：若列表是隐藏的，则会显示出来。
                 self._keepFocus();
-                // 若当前已经显示的情况下，需要隐藏一下。
-                if(isVisible) {
-                    self.hide();
-                }
-            });
 
-            E.on(this.elTrigger, 'click', function(ev) {
-                self.fire('toggle');
-            });
-
-            E.on(elText, 'focus', function() {
-                self._stopHideTimer();
-                if(!self.isVisible) {
-                    view.render(datalist._list);
+                if(!isVisible) {
+                    view.render(datalist.getDataSource());
                     self.show();
+                }else {
+                    self.hide();
                 }
             });
 
@@ -741,7 +740,9 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
             view.on('UIRender', function(ev) {
                 var elWrap = view.elWrap;
 
+                // 设置列表浮层不可选择。使得点击操作不会获取焦点。
                 D.unselectable(elWrap);
+                // chrome和firefox下，还需要阻止掉mousedown默认事件。
                 E.on(elWrap, 'mousedown', function(ev) {
                     ev.preventDefault();
                 });
@@ -801,7 +802,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
             elText.value = text;
         },
         hide: function() {
-            this._view.visible(this.isVisible = false);
+            this._view.visible(false);
         },
         show: function() {
             var view = this._view,
@@ -812,10 +813,11 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 points: ['bl','tl'],
                 offset: [0, 0]
             });
-            view.visible(this.isVisible = true);
+            view.visible(true);
         },
         _bindInput: function(elInput) {
             var self = this,
+                cfg = self.cfg,
                 datalist = self._data,
                 view = self._view;
 
@@ -839,8 +841,8 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 if(keyCode == 38 || keyCode == 40) {
                     ev.preventDefault();
 
-                    if(!self.isVisible) {
-                        view.render(datalist._list);
+                    if(!self._view.getVisible()) {
+                        view.render(datalist.getDataSource());
                         self.show();
                         return;
                     }
@@ -856,7 +858,6 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 // 回车操作
                 if(keyCode == 13) {
                     view.selectFocused();
-                    return;
                 }
             });
 
@@ -874,18 +875,17 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                 // 如果值为空，则显示完整的列表
                 var kw = elInput.value;
                 if(!kw) {
-                    view.render(datalist._list);
+                    view.render(datalist.getDataSource());
                     self.show();
                     return;
                 }
 
-                datalist.filter({
-                    text: kw
-                }, function(list) {
+                function render(list) {
                     // 如果进行搜索，则表示当前选择项失效。
                     // 直接设置数据为空即可。若通过select方法来取消选择，会联动数据回填，导致输入框的内容不符合预期。
                     var prevData = datalist.selected;
                     datalist.selected = view.focused = undefined;
+
                     // 但是若数据变化了，还是需要触发外部事件，便于响应处理
                     if(prevData !== undefined) {
                         self.fire('change', {data: undefined});
@@ -895,10 +895,46 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
                         view.emptyRender();
                     }else {
                         view.render(list);
-                        self.show();
                     }
-                });
+                }
+
+                if(cfg.remote) {
+                    self._remoteFilter(kw, render);
+                }else {
+                    self._syncFilter(kw, render);
+                }
             });
+        },
+        _remoteFilter: function(kw, callback) {
+            var self = this,
+                cfg = self.cfg;
+
+            var ajaxParam = S.merge({}, cfg.remote, {
+                data: {
+                    text: kw
+                }
+            });
+
+            self._fetch(ajaxParam, function(data) {
+                var dt = self.dataFactory(data);
+                self._data.setDataSource(kw, dt);
+                callback && callback(dt);
+            });
+        },
+        _syncFilter: function(kw, callback) {
+            var self = this,
+                datalist = self._data,
+                result = [];
+
+            // 筛选出符合的元素
+            S.each(datalist.getDataSource(), function(it) {
+                if(it.text.indexOf(kw) !== -1) {
+                    result.push(it);
+                }
+            });
+
+            // 异步回调处理。
+            callback && callback(result);
         },
         _stopHideTimer: function() {
             var timer = this.timer;
@@ -943,7 +979,7 @@ KISSY.add('gallery/droplist/0.1/droplist',function (S, D, E, DataList, View) {
 
     return DropList;
 
-}, {requires:['dom', 'event', './datalist', './viewscroll']});
+}, {requires:['dom', 'event', 'ajax', './datalist', './viewscroll']});
 
 /*
  ToDo
@@ -979,7 +1015,7 @@ ChangeLog
  * @module droplist
  **/
 
-KISSY.add('gallery/droplist/0.1/index',function (S, D, E, DropList) {
+KISSY.add('gallery/droplist/0.2/index',function (S, D, E, DropList) {
 
     DropList.decorate = function(el, config) {
         var data = [];

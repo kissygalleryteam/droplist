@@ -2,10 +2,10 @@
 
 DropList是模拟下拉表单的元素。
 
-* 版本：0.1
+* 版本：0.2
 * 作者：阿克
 * 标签：select,dropdown list
-* demo：[http://gallery.kissyui.com/droplist/0.1/demo/index.html](http://gallery.kissyui.com/droplist/0.1/demo/index.html)
+* demo：[http://gallery.kissyui.com/droplist/0.2/demo/index.html](http://gallery.kissyui.com/droplist/0.2/demo/index.html)
 
 ## 快速使用
 
@@ -14,7 +14,7 @@ DropList是模拟下拉表单的元素。
      * 组件有很多渲染模式，最简单的是根据 select 元素渲染
      * 更多渲染方式参考 Demo 和 API 说明
      */
-    S.use('gallery/droplist/0.1/index', function (S, DropList) {
+    S.use('gallery/droplist/0.2/index', function (S, DropList) {
         // 根据 select 节点构造 droplist 对象
         var dl = DropList.decorate(elSelect);
         // 渲染结构和数据。
@@ -25,7 +25,7 @@ DropList是模拟下拉表单的元素。
 ## 参数详解
 
 <pre>
-KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+KISSY.use('gallery/droplist/0.2/index', function (S, DropList) {
     var droplist = new DropList({
         // 用于设置初始化的选择值。
         // 注意：默认选项的数据格式为text和value。允许有其他值，但内部只使用text作为展示文案，value为选项唯一的标识（选项对比依赖value值）。
@@ -53,6 +53,13 @@ KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
                 parama: 1,
                 paramb: 2
             }
+        },
+        /**
+         * 搜索的异步条件。KISSY.IO的参数格式
+         * 搜索的结果也会过fnReceive和fnDataAdapter函数。
+         */
+        remote: {
+            url: "./search.html"
         },
         // 指定插入的位置。参数el为droplist对象的容器节点。
         insertion: function(el) {
@@ -107,6 +114,8 @@ KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
 
 ### 构造参数
 * cfg
+    * dataSource {Object}
+        * cfg 同KISSY.io的配置参数。默认dataType: "json",type: "GET"
 	* fieldName {String}
 		* 设置用来同步value值的隐藏域的name属性。
 	* insertion 用来决定如何将DropList容器对象插入文档中。
@@ -134,8 +143,6 @@ KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
 
 ### 属性
 
-* isVisible
-	* 列表是否可见
 * elWrap
 	* DropList对象的容器。列表浮层元素不包含在该容器中。
 
@@ -160,4 +167,4 @@ KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
 
 ## 其他
 * 键盘操作
-	* 支持键盘操作。聚焦时显示列表，上下方向键控制聚焦操作，回车选择当前聚焦项。
+	* 支持键盘操作。上下方向键控制聚焦操作，回车选择当前聚焦项。
