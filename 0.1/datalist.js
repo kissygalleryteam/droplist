@@ -19,19 +19,18 @@ KISSY.add(function(S) {
         _init: function(cfg) {
 
             cfg = this.cfg = S.merge(def, cfg);
+            this.cache = {};
+            this._dataMap = {}
 
             this._initSelected = cfg.selected;
         },
-        dataFactory: function(list) {
-            this._dataFactory(list);
-        },
         getDataByValue: function(value) {
-            if(!this._list) {
+            if(!this.getDataSource()) {
                 return;
             }
 
             var result;
-            S.each(this._list, function(it) {
+            S.each(this.getDataSource(), function(it) {
                 if(it.value === value) {
                     result = it;
                     return false;
@@ -58,12 +57,21 @@ KISSY.add(function(S) {
         getSelectedData: function() {
             return this.selected || this._initSelected;
         },
+        setDataSource: function(kw, data) {
+            this.cache[kw] = data;
+            this._list = data;
+        },
+        getDataSource: function(kw) {
+            kw = kw || "";
+
+            return this.cache[kw];
+        },
         // 根据新数据，重新构造数据。
-        _dataFactory: function(list) {
+        dataFactory: function(list) {
             var self = this,
                 prevSelected = self.getSelectedData(),
                 result = [],
-                map = this._dataMap = {};
+                map = this._dataMap;
 
             self.selected = undefined;
 
@@ -86,7 +94,7 @@ KISSY.add(function(S) {
 
             delete self._initSelected;
 
-            this._list = result;
+            return result;
         }
     });
 

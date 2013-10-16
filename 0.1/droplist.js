@@ -84,8 +84,6 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
             this._bindControl();
 
-            this.isVisible = false;
-
             this.timer = {
                 search: null,
                 hide: null
@@ -94,7 +92,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
         render: function() {
             var self = this,
                 cfg = self.cfg,
-                elWrap = self.elWrap;
+                elWrap = self.elWrap,
+                datalist = self._data;
 
             if(!elWrap) {
                 self._buildWrap();
@@ -124,36 +123,43 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             // render时才做初始化数据处理。
             var ds = cfg.dataSource;
 
+            function setDataSource(data) {
+                var dt = self.dataFactory(data);
+                datalist.setDataSource("", dt);
+            }
+
             if(S.isArray(ds)) {
 
-                self.dataFactory(ds);
-
+                setDataSource(ds)
 
             }else if(S.isString(ds)) {
 
                 this._fetch({
                     url: ds
                 }, function(data) {
-                    self.dataFactory(data);
+
+                    setDataSource(data);
                 });
 
             }else if(S.isPlainObject(ds)) {
 
                 this._fetch(ds, function(data) {
-                    self.dataFactory(data);
+
+                    setDataSource(data);
                 });
 
             }else if(S.isFunction(ds)) {
 
                 ds(function(data) {
-                    self.dataFactory(data);
+
+                    setDataSource(data);
                 });
 
             }
         },
         dataFactory: function(data) {
             var dt = this.cfg.fnDataAdapter(data);
-            this._data.dataFactory(dt);
+            return this._data.dataFactory(dt);
         },
         _fetch: function(param, callback) {
             var self = this,
@@ -195,25 +201,18 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 view = self._view,
                 datalist = self._data;
 
-            self.on('toggle', function() {
-                var isVisible = self.isVisible;
+            E.on(this.elTrigger, 'click', function(ev) {
+                var isVisible = self._view.getVisible();
+
+                self._stopHideTimer();
                 // focus会触发事件：若列表是隐藏的，则会显示出来。
                 self._keepFocus();
-                // 若当前已经显示的情况下，需要隐藏一下。
-                if(isVisible) {
-                    self.hide();
-                }
-            });
 
-            E.on(this.elTrigger, 'click', function(ev) {
-                self.fire('toggle');
-            });
-
-            E.on(elText, 'focus', function() {
-                self._stopHideTimer();
-                if(!self.isVisible) {
-                    view.render(datalist._list);
+                if(!isVisible) {
+                    view.render(datalist.getDataSource());
                     self.show();
+                }else {
+                    self.hide();
                 }
             });
 
@@ -296,7 +295,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             elText.value = text;
         },
         hide: function() {
-            this._view.visible(this.isVisible = false);
+            this._view.visible(false);
         },
         show: function() {
             var view = this._view,
@@ -307,7 +306,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 points: ['bl','tl'],
                 offset: [0, 0]
             });
-            view.visible(this.isVisible = true);
+            view.visible(true);
         },
         _bindInput: function(elInput) {
             var self = this,
@@ -335,8 +334,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 if(keyCode == 38 || keyCode == 40) {
                     ev.preventDefault();
 
-                    if(!self.isVisible) {
-                        view.render(datalist._list);
+                    if(!self._view.getVisible()) {
+                        view.render(datalist.getDataSource());
                         self.show();
                         return;
                     }
@@ -352,7 +351,6 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 // 回车操作
                 if(keyCode == 13) {
                     view.selectFocused();
-                    return;
                 }
             });
 
@@ -370,7 +368,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 // 如果值为空，则显示完整的列表
                 var kw = elInput.value;
                 if(!kw) {
-                    view.render(datalist._list);
+                    view.render(datalist.getDataSource());
                     self.show();
                     return;
                 }
@@ -390,46 +388,40 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                         view.emptyRender();
                     }else {
                         view.render(list);
-                        self.show();
                     }
                 }
 
-                var data = {
-                    text: kw
-                };
-
                 if(cfg.remote) {
-                    self._remoteFilter(data, render);
+                    self._remoteFilter(kw, render);
                 }else {
-                    self._syncFilter(data, render);
+                    self._syncFilter(kw, render);
                 }
             });
         },
-        _remoteFilter: function(param, callback) {
-            var cfg = this.cfg;
+        _remoteFilter: function(kw, callback) {
+            var self = this,
+                cfg = self.cfg;
 
-            var ajaxParam = S.merge({}, cfg.remote, param);
+            var ajaxParam = S.merge({}, cfg.remote, {
+                data: {
+                    text: kw
+                }
+            });
 
-            this._fetch(ajaxParam, function(data) {
-                callback && callback(data);
+            self._fetch(ajaxParam, function(data) {
+                var dt = self.dataFactory(data);
+                self._data.setDataSource(kw, dt);
+                callback && callback(dt);
             });
         },
-        _syncFilter: function(data, callback) {
+        _syncFilter: function(kw, callback) {
             var self = this,
                 datalist = self._data,
                 result = [];
 
             // 筛选出符合的元素
-            S.each(datalist._list, function(it) {
-                var yep = false;
-                S.each(data, function(val, key) {
-                    if(it[key].indexOf(val) !== -1) {
-                        yep = true;
-                        return false;
-                    }
-                });
-
-                if(yep) {
+            S.each(datalist.getDataSource(), function(it) {
+                if(it.text.indexOf(kw) !== -1) {
                     result.push(it);
                 }
             });

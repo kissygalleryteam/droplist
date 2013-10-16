@@ -80,8 +80,8 @@ KISSY自带的ComboBox基本上能满足80%的需求，但它对某些场景有�
     .dropmenu-overlay {
         border: 1px solid rgb(147,193,235);
         position: absolute;
-        left: -999em;
-        top: -999em;
+        left: -999px;
+        top: -999px;
         background-color: #fff;
         width: 133px;
         max-height: 200px;
@@ -432,6 +432,9 @@ KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
                 paramb: 2
             }
         },
+        remote: {
+            url: "./search.html"
+        },
         selectedItem: {
             value: "8",
             text: "890"
@@ -569,7 +572,6 @@ KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
 // KISSY ComboBox 组件。
 KISSY.use('combobox', function(S, ComboBox) {
     var data = [];
-    var MaxItemCount = 20;
     for(var i = 0;i< MaxItemCount; i++) {
         data.push('option' + i);
     }
