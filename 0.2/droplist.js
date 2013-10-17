@@ -199,6 +199,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 datalist = self._data;
 
             E.on(this.elTrigger, 'click', function(ev) {
+                ev.preventDefault();
                 var isVisible = self._view.getVisible();
 
                 self._stopHideTimer();
@@ -212,6 +213,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                     self.hide();
                 }
             });
+
+            D.unselectable(this.elTrigger);
 
             elValue && self.on('change', function(ev) {
                 var data = ev.data,

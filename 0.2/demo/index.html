@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <title>droplist的demo</title>
-    <script src="http://g.tbcdn.cn/kissy/k/1.3.0/seed.js" charset="utf-8"></script>
+    <script src="http://g.tbcdn.cn/kissy/k/1.3.2/seed.js" charset="utf-8"></script>
     <link rel="stylesheet" href="http://g.tbcdn.cn/kissy/k/1.3.0/css/dpl/base-min.css">
 </head>
 <body>
@@ -258,7 +258,7 @@ var MaxItemCount = 2000;
  * 在现有的符合要求的结构上进行渲染。
  * 优势是结构简单。渲染时基本不会对dom结构做变更，节省初始化开销。
  */
-KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+KISSY.use('gallery/droplist/0.2/index', function (S, DropList) {
     var $log = S.one('.log', '#demo1');
 
     var droplist = new DropList({
@@ -332,7 +332,7 @@ KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
 
 </fieldset>
 <script id="source2" type="text/javascript">
-KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+KISSY.use('gallery/droplist/0.2/index', function (S, DropList) {
     var $select = S.one('.tobedroplist', '#demo2'),
         $log = S.one('.log', '#demo2');
 
@@ -377,7 +377,7 @@ KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
 
 </fieldset>
 <script id="source3" type="text/javascript">
-KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+KISSY.use('gallery/droplist/0.2/index', function (S, DropList) {
     var $log = S.one('.log', '#demo3');
 
     // 不设置初始化选择值
@@ -415,7 +415,7 @@ KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
 
 </fieldset>
 <script id="source4" type="text/javascript">
-KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+KISSY.use('gallery/droplist/0.2/index', function (S, DropList) {
     var $log = S.one('.log', '#demo4');
 
     // 不设置初始化选择值
@@ -508,7 +508,7 @@ KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
 </fieldset>
 
 <script id="source5" type="text/javascript">
-KISSY.use('gallery/droplist/0.1/index', function (S, DropList) {
+KISSY.use('gallery/droplist/0.2/index', function (S, DropList) {
     var data = [];
     for(var i = 0;i< MaxItemCount; i++) {
         data.push({value: i.toString(), text: 'option' + i});
