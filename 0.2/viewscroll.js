@@ -37,17 +37,37 @@ KISSY.add(function(S, Overlay, Template, Lap) {
                 self.focused = undefined;
             })
         },
+        _UIRender: function() {
+            var self = this,
+                layer = self.layer,
+                elList = self.elList;
+
+            var elWrap = layer.get('el'),
+                elContent = layer.get('contentEl');
+
+            elContent.append(elList);
+
+            self._bindList();
+
+            /**
+             * @public 在渲染列表容器的时候触发。droplist对象用来进行焦点控制。
+             * @requires this.elWrap this.fire('UIRender');
+             */
+            self.elWrap = elWrap;
+            self.fire('UIRender');
+        },
+        emptyRender: function() {
+            this._list = [];
+
+            D.html(this.elList, "empty search");
+            this.visible(false);
+        },
         /**
          * @public 渲染指定的数据
          * TODO 完善+限定高度的渲染。
          * @param list
-         * @return boolean 若返回值为false，则列表元素隐藏。其他情况下显示
          */
         render: function(list) {
-            if(!list || list.length == 0) {
-                return false;
-            }
-
             var self = this,
                 lap = self.lap,
                 fragment = document.createDocumentFragment();
@@ -88,7 +108,7 @@ KISSY.add(function(S, Overlay, Template, Lap) {
 
             lap.start();
 
-            return true;
+            self.visible(true);
         },
         _itemRender: function(data) {
             if(!data) return null;
@@ -101,25 +121,6 @@ KISSY.add(function(S, Overlay, Template, Lap) {
             }
 
             return el;
-        },
-        _UIRender: function() {
-            var self = this,
-                layer = self.layer,
-                elList = self.elList;
-
-            var elWrap = layer.get('el'),
-                elContent = layer.get('contentEl');
-
-            elContent.append(elList);
-
-            self._bindList();
-
-            /**
-             * @public 在渲染列表容器的时候触发。droplist对象用来进行焦点控制。
-             * @requires this.elWrap this.fire('UIRender');
-             */
-            self.elWrap = elWrap;
-            self.fire('UIRender');
         },
         _bindList: function() {
             var self = this,
@@ -143,8 +144,8 @@ KISSY.add(function(S, Overlay, Template, Lap) {
          * @param data
          */
         select: function(data) {
-            var id = data ? data._id : false,
-                elItem = (id !== false) && D.get('#' + TEMPLATES.prefixId + id, this.elList);
+            var elItem = this.getElement(data);
+
             if(!elItem) {
                 elItem = data = undefined;
             }
@@ -153,19 +154,12 @@ KISSY.add(function(S, Overlay, Template, Lap) {
 
             this.fire('select', {data: data});
         },
-        _selectByElement: function(elItem, data) {
-            this._setElementClass(elItem, this.selected, TEMPLATES.selectedCls);
-
-            this.selected = data;
-            this.focused = data;
-        },
         /**
          * @public 根据clientId 聚焦指定的元素。若不存在，则取消聚焦
          * @param id
          */
         _focus: function(data) {
-            var id = data ? data._id : false,
-                elItem = (id !== false) && D.get('#' + TEMPLATES.prefixId+id, this.elList);
+            var elItem = this.getElement(data);
 
             // TODO 列表未渲染出来时如何处理？
             if(!elItem) {
@@ -175,11 +169,18 @@ KISSY.add(function(S, Overlay, Template, Lap) {
             this._setElementClass(elItem, this.focused, TEMPLATES.focusCls);
 
             this.focused = data;
+            this.scrollIntoView(data);
             this.fire('focus', {data: data});
+        },
+        _selectByElement: function(elItem, data) {
+            this._setElementClass(elItem, this.selected, TEMPLATES.selectedCls);
+
+            this.selected = data;
+            this.focused = data;
         },
         _setElementClass: function(el, data, cls) {
             if(data) {
-                var elItem = D.get('#' + TEMPLATES.prefixId + data._id, this.elList);
+                var elItem = this.getElement(data);
                 elItem && D.removeClass(elItem, cls);
             }
             el && D.addClass(el, cls);
@@ -228,21 +229,26 @@ KISSY.add(function(S, Overlay, Template, Lap) {
                 this.fire('itemSelect', {id: this.focused._id});
             }
         },
-        emptyRender: function() {
-            this.visible(false);
-        },
         /**
          * @public 显示和隐藏
          * @param isVisible
          */
-        visible: function(isVisible) {
-            if(isVisible) {
+        visible: function(visible) {
+            var isVisible = this.getVisible(),
+                willVisible = visible === undefined ? !isVisible : visible;
+
+            if(isVisible === willVisible) return;
+
+            if(willVisible) {
                 this.layer.show();
                 this.fire('show');
             }else {
                 this.layer.hide();
                 this.fire('hide');
             }
+        },
+        getVisible: function() {
+            return this.layer.get('visible');
         },
         /**
          * @public 浮层的定位。按照overlay的align定义。
@@ -251,10 +257,20 @@ KISSY.add(function(S, Overlay, Template, Lap) {
         align: function(align) {
             this.layer.set('align', align);
         },
+        getElement: function(data) {
+            if(data && data._id) {
+                return D.get('#' + TEMPLATES.prefixId + data._id, this.elList);
+            }else {
+                return;
+            }
+        },
         /**
-         * TODO 指定项显示在当前可视视图内
+         * 指定项显示在当前可视视图内
          */
-        scrollIntoView: function() {
+        scrollIntoView: function(data) {
+            var elItem = this.getElement(data);
+
+            D.scrollIntoView(elItem, this.elWrap);
 
         }
     });
