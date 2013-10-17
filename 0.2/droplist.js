@@ -483,6 +483,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
  - custom template
  - 目前只支持枚举不可输入，需要支持枚举可输入。
  - doWith method. more useful for dev
+ - option disable status
+ - optgroup support
 */
 
 

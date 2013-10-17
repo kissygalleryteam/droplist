@@ -126,7 +126,8 @@ KISSY.use('gallery/droplist/0.2/index', function (S, DropList) {
 ### V0.2
 
     - [+]支持关键词异步搜索
+    - [+]支持focus聚焦到当前视图内。
     - [*]修复demo中首次显示错位和toggle显示错误的问题。
     - [*]数据源存储调整，搜索结果也存到datalist中。
-    - [*]支持focus聚焦到当前视图内。
     - [*]部分实现调整和优化
+    - [ ]
