@@ -1,10 +1,9 @@
 ## 综述
 
-DropList是模拟下拉表单的元素。
+一个解决大数据列表渲染效率的下拉菜单组件。
 
 * 版本：0.2
-* 作者：阿克
-* 标签：select,dropdown list
+* 作者：阿克 (wgk1987@gmail.com)
 * demo：[http://gallery.kissyui.com/droplist/0.2/demo/index.html](http://gallery.kissyui.com/droplist/0.2/demo/index.html)
 
 ## 快速使用

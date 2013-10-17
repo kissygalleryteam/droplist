@@ -482,22 +482,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
  - different view
  - custom template
  - 目前只支持枚举不可输入，需要支持枚举可输入。
- - remote data?
  - doWith method. more useful for dev
 */
-
-/*
-ChangeLog
- 0.1
-   - 一次性远程获取数据或本地数据进行列表渲染。
-   - 支持键盘的操作。方向键聚焦选项，回车键选择，esc关闭列表。
-   - 支持可输入和不可输入（输入目前代表的是搜索功能）。
-   - 支持多种渲染方式
-     - 从符合条件的结构渲染
-     - 从select节点渲染模拟select
-     - 脚本动态渲染
-   - 支持数据定制。(fnDataAdapter/fnReceive)
- */
-
 
 
