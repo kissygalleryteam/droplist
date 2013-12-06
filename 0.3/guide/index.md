@@ -1,11 +1,10 @@
-## DropList
+## 综述
 
 一个解决大数据列表渲染效率的下拉菜单组件。
 
 * 版本：0.3
-* 教程：[http://gallery.kissyui.com/droplist/0.3/guide/index.html](http://gallery.kissyui.com/droplist/0.3/guide/index.html)
+* 作者：阿克 (wgk1987@gmail.com)
 * demo：[http://gallery.kissyui.com/droplist/0.3/demo/index.html](http://gallery.kissyui.com/droplist/0.3/demo/index.html)
-
 
 ## 快速使用
 
@@ -110,31 +109,71 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
 });
 </pre>
 
+## API说明
 
-## changelog
+### 构造参数
+* cfg
+    * dataSource {Object}
+        * cfg 同KISSY.io的配置参数。默认dataType: "json",type: "GET"
+	* fieldName {String}
+		* 设置用来同步value值的隐藏域的name属性。
+	* insertion 用来决定如何将DropList容器对象插入文档中。
+		* {String} 目标容器的selector字符串。DropList对象会append到目标容器。
+		* {Function} 第一个参数是DropList容器的节点对象。
+		* {DOMElement} DOM元素，会直接append到该元素。
+	* fnDataAdapter {Function}
+		* 对设置的列表选项数据进行适配处理。
+		* return Array<Object> 返回的数组，每一项需要包含value和text属性，属性值是字符串类型数据，且value值是列表唯一的。
+	* fnReceive {Function}
+		* 对异步返回的数据进行适配处理。
+		* return {Object} 返回的数据需要包含result和list属性。若result为true，则表示数据返回成功，若result为false，则表示失败，默认会调用alert方法显示msg属性值；list为数据列表。
+	* hideDelay {Number}
+		* 输入框失去焦点以后，隐藏列表的延迟时间。默认100ms。
+	* fieldName {String}
+		* 用于同步选择项的value值的隐藏域的name属性。
 
-### v0.3
 
-- [*] kissy版本升级为1.4
-- [*] 修复初始直接输入的时候，下拉菜单不显示。
-- [+] input placeholder
-- [+] 增加doWith方法。针对指定的值是否匹配，以执行对应的处理逻辑。
+### 静态方法
+* decorate 用于渲染select元素为DropList对象。
+	* 调用方式`DropList.decorate(elSelect, cfg)`
+	* elSelect为要渲染的select元素。
+	* cfg为构造参数。若与select元素的配置有冲突，会覆盖select上的配置信息（如fieldName）。
+	* return {DropList Instance} 返回DropList实例对象。
 
-### V0.2
+### 属性
 
-- [+]支持关键词异步搜索
-- [+]支持focus聚焦到当前视图内。
-- [*]修复demo中首次显示错位和toggle显示错误的问题。
-- [*]数据源存储调整，搜索结果也存到datalist中。
-- [*]部分实现调整和优化
+* elWrap
+	* DropList对象的容器。列表浮层元素不包含在该容器中。
 
-### V0.1
+### 方法
+* selectByValue(value)
+	* 根据指定的value值选择选项。
 
-- [+]基础的下拉菜单模拟功能
-- [+]支持本地数据和异步数据初始化
-- [+]支持多种结构渲染的方式
-- [+]支持搜索
-- [+]支持大数据量的渲染优化
-- [+]支持键盘操作
-- [+]支持数据定制
+* getDataByValue(value)
+	* 根据指定的value获取对应的数据内容。
+	* return 设置dataSource的完整的数据内容。
+    * 注意：包含其他内部使用的数据。建议对返回的数据只做读操作，不要覆盖原有的属性。
 
+* getSelectedData
+    * 获取当前选择项的数据内容
+    * return 当前选中的数据。
+
+* render
+    * 初始化渲染结构。初始化获取和数据处理。
+    * 注意：设置同步数据时，若先render后注册change事件。则初始化的change事件不会触发。
+
+* doWith(value, fnMatch, fnMismatch)
+    * 判断当前选择值是否与value相匹配。
+    * 调用方法时会立即执行一次判断。
+    * value 为列表中某一项的value值。
+    * fnMatch 匹配时执行的处理逻辑
+    * fnMismatch 不匹配时执行的处理逻辑
+
+### 事件
+* change
+	* 当选择项发生变化时触发。其事件对象中包含的`data`数据为当前选择的数据。
+	* 当进行搜索操作的时候，会将当前选项清除。此时也会触发change事件。
+
+## 其他
+* 键盘操作
+	* 支持键盘操作。上下方向键控制聚焦操作，回车选择当前聚焦项。
