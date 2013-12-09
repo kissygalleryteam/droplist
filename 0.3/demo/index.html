@@ -414,7 +414,15 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
         freedom: true,
         autoMatch: true,
         // 指定插入的位置。
-        insertion: '#demo3 .droplistwrap'
+        insertion: '#demo3 .droplistwrap',
+        format: function(data) {
+            data.text = [
+                    "<b>",
+                data.text,
+                    "</b>123"
+            ].join("")
+            return data;
+        }
     });
     droplist.on('change', function(ev) {
         var log = printLog(ev.data);

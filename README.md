@@ -122,6 +122,7 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
 - [+] 支持自定义内容输入。freedom配置
 - [+] 支持自动匹配输入项。autoMatch配置
 - [+] 添加ARIA属性支持
+- [+] 支持自定义菜单项模板
 - [*] 部分bug修复
     - [*] 修复初始直接输入的时候，下拉菜单不显示。
     - [*] 修复失去焦点时没触发事件的问题

@@ -4,11 +4,6 @@
  * @module droplist
  **/
 
-/*
-version 0.3
- [ ] custom template
- */
-
 /**
  * 选择操作的执行路径
  * A: view.event.itemSelect
@@ -40,8 +35,6 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             placeholder: "",
             freedom: false,
             autoMatch: false,
-//            remote:
-
             fnDataAdapter: function(data) {
                 return data;
             },
@@ -150,7 +143,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             this._data = new DataList({
                 selected: cfg.selectedItem
             });
-            this._view = new View(this._data);
+            this._view = new View(this._data, {format: cfg.format});
 
             this._bindControl();
 
@@ -428,6 +421,10 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
             datalist.select(data);
 
+            if(this._view.getVisible()) {
+                self.hide();
+            }
+
             return !!data;
         },
         // 程序调用的选择操作，是从droplist对象中触发的。
@@ -473,10 +470,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                     inputText = elInput.value;
 
                 // 在失去焦点的时候，自动匹配当前输入值相同的项。
-                if(cfg.autoMatch) {
-                    if(self._autoMatchByText(inputText)) {
-                        return;
-                    }
+                if(cfg.autoMatch && self._autoMatchByText(inputText)) {
+                    return;
                 }
 
                 // 若支持自定义输入内容，且输入的内容不为空，且当前没有选择的项

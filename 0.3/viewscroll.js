@@ -11,8 +11,13 @@ KISSY.add(function(S, Overlay, Lap) {
             focusCls: "focus",
             prefixId: "dropmenu-",
             prefixCls: "dropmenu-",
-            menuItem: '<li class="{prefixCls}item" id="{prefixId}item{id}" data-id="{id}">{text}</li>',
+            menuItem: '<li class="{prefixCls}item" id="{prefixId}item{__id}" data-id="{__id}">{text}</li>',
             empty: "搜索无结果"
+        },
+        def = {
+            format: function(data) {
+                return data;
+            }
         };
 
     function View() {
@@ -20,8 +25,9 @@ KISSY.add(function(S, Overlay, Lap) {
     }
 
     S.augment(View, S.EventTarget, {
-        _init: function(datalist) {
+        _init: function(datalist, config) {
             var self = this,
+                cfg = S.merge(def, config),
                 layer = new Overlay({
                     prefixCls: TEMPLATES.prefixCls
                 });
@@ -29,6 +35,7 @@ KISSY.add(function(S, Overlay, Lap) {
             self.layer = layer;
             self.elList = D.create('<ul></ul>')
             self.datalist = datalist;
+            self.format = cfg.format;
 
             layer.on('afterRenderUI', function() {
                 self._UIRender();
@@ -113,13 +120,11 @@ KISSY.add(function(S, Overlay, Lap) {
         _itemRender: function(data) {
             if(!data) return null;
 
-            var html = S.substitute(TEMPLATES.menuItem, {
+            var _data = this.format(S.clone(data)),
+                html = S.substitute(TEMPLATES.menuItem, S.merge({
                     prefixId: TEMPLATES.prefixId,
-                    prefixCls: TEMPLATES.prefixCls,
-                    id: data.__id,
-                    value: data.value,
-                    text: data.text
-                }),
+                    prefixCls: TEMPLATES.prefixCls
+                }, _data)),
                 el = D.create(html),
                 selected = this.datalist.getSelectedData();
 
