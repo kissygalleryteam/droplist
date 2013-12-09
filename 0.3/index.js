@@ -6,9 +6,6 @@
 
 KISSY.add(function (S, D, E, DropList) {
 
-    var ARIA = {
-    };
-
     DropList.decorate = function(el, config) {
         var data = [];
 

@@ -38,12 +38,32 @@ KISSY.add(function(S) {
             });
             return result;
         },
+        getClientId: function(data) {
+            return data && data[UNIQUEKEY];
+        },
+        getDataByText: function(text) {
+            if(!this.getDataSource()) {
+                return;
+            }
+
+            var result;
+            S.each(this.getDataSource(), function(it) {
+                if(it.text === text) {
+                    result = it;
+                    return false;
+                }
+            });
+            return result;
+        },
         select: function(id) {
-            var data;
-            if(id != undefined) {
+            var data = id;
+            if(!S.isPlainObject(id) && id != undefined) {
                 data = this._dataMap[id];
             }
 
+            this._selectByData(data);
+        },
+        _selectByData: function(data) {
             var prevData = this.selected;
             // 同一个选项，就不需要再次处理了。
             if(prevData == data ||

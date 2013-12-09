@@ -6,11 +6,25 @@
 
 /*
 version 0.3
-
- [ ] 枚举可输入
  [ ] custom template
- [ ] optgroup support
- [ ] ARIA support
+ */
+
+/**
+ * 选择操作的执行路径
+ * A: view.event.itemSelect
+ * B: datalist.select()
+ * C: droplist.event.change
+ * D: droplist.elInput.event.blur (autoMatch = false)
+ * E: droplist.elInput.event.keyup (输入内容/搜索)
+ * F: droplist.elInput.event.keydown (回车选择)
+ * G: view.elWrap.event.click (鼠标选择)
+ * H: droplist.elInput.event.blur (autoMatch = true)
+ *
+ * 1. G -> A -> B -> C
+ * 2. D -> C
+ * 3. E -> C
+ * 4. F -> A -> B -> C
+ * 5. H -> B -> C
  */
 KISSY.add(function (S, D, E, IO, DataList, View) {
 
@@ -24,7 +38,10 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             // droplist容器的append处理逻辑
             insertion: document.body,
             placeholder: "",
+            freedom: false,
+            autoMatch: false,
 //            remote:
+
             fnDataAdapter: function(data) {
                 return data;
             },
@@ -41,7 +58,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             '<input class="drop-text" type="text" name="{name}-text" placeholder="{placeholder}" />' +
             '</div>' +
             '<input class="drop-value" type="hidden" />' +
-        '</div>'].join(""),
+        '</div>'].join(EMPTY),
         textCls: "drop-text",
         valueCls: "drop-value",
         triggerCls: "drop-trigger",
@@ -69,6 +86,47 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
         91,// left window/command key
         93 // right window/command key
     ];
+
+    var ACTIVEDESCENDANT = 'aria-activedescendant',
+    ARIA = {
+        bind: function(instance) {
+            var listbox = instance._view,
+                elInput = instance.elText;
+
+            D.attr(instance.elWrap, {
+                "role": 'combobox'
+            });
+            D.attr(elInput, {
+                "role": "textbox"
+            });
+            D.attr(elInput, {
+                "aria-autocomplete": "list",
+                "aria-haspopup": "true"
+            });
+
+            instance.on('hide show', function(ev) {
+                D.attr(elInput, 'aria-expanded', ev.type === 'show');
+            });
+
+            listbox.on('UIRender', function(ev) {
+                var elWrap = listbox.elWrap;
+                D.attr(elInput, {
+                    "aria-owns": elWrap[0].id
+                });
+
+                listbox.on('focus', function(ev) {
+                    var data = ev.data,
+                        el = listbox.getElement(data);
+
+                    elWrap.attr(ACTIVEDESCENDANT, el ? el.id : EMPTY);
+                });
+            });
+
+            instance.on('change', function() {
+                D.attr(listbox.elWrap, ACTIVEDESCENDANT, EMPTY);
+            });
+        }
+    };
 
     /**
      *
@@ -133,6 +191,9 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             }
 
             this._bindElement();
+
+            // 在数据初始化之前绑定
+            ARIA.bind(this);
 
             // render时才做初始化数据处理。
             var ds = cfg.dataSource;
@@ -238,14 +299,15 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
             D.unselectable(this.elTrigger);
 
+            // 同步数据用。
             elValue && self.on('change', function(ev) {
                 var data = ev.data;
 
                 elValue.value = data ? data.value : "";
             });
 
+            // 模拟placeholder的功能
             var elPlaceholder = this.elPlaceholder;
-
             elPlaceholder && E.on(elText, 'valuechange', function(ev) {
                 var val = D.val(elText);
 
@@ -281,6 +343,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 self._data.select(_id);
             });
 
+            // 键盘聚焦项操作
             view.on('focus', function(ev) {
                 var data = ev.data;
 
@@ -289,7 +352,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                     self._fillText(data);
                 }else {
                     // 没有聚焦项时，显示选择项即可。
-                    self._fillText(datalist.selected);
+                    self._fillText(self.getSelectedData());
                 }
             });
 
@@ -307,6 +370,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 self.hide();
             });
 
+            // doWith注册的逻辑处理
             self.on('change', function(ev) {
                 var data = ev.data;
 
@@ -358,11 +422,19 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 });
             }
         },
+        _autoMatchByText: function(text) {
+            var datalist = this._data,
+                data = datalist.getDataByText(text);
+
+            datalist.select(data);
+
+            return !!data;
+        },
         // 程序调用的选择操作，是从droplist对象中触发的。
         selectByValue: function(value) {
             var datalist = this._data;
             var data = datalist.getDataByValue(value);
-            this._data.select(data && data.__id);
+            this._data.select(data);
         },
         getSelectedData: function() {
             return this._data.getSelectedData();
@@ -375,6 +447,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
         },
         hide: function() {
             this._view.visible(false);
+            this.fire("hide");
         },
         show: function() {
             var view = this._view,
@@ -386,6 +459,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 offset: [0, 0]
             });
             view.visible(true);
+
+            this.fire("show");
         },
         _bindInput: function(elInput) {
             var self = this,
@@ -394,7 +469,32 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 view = self._view;
 
             E.on(elInput, 'blur', function() {
-                self._fillText(datalist.selected);
+                var data = self.getSelectedData(),
+                    inputText = elInput.value;
+
+                // 在失去焦点的时候，自动匹配当前输入值相同的项。
+                if(cfg.autoMatch) {
+                    if(self._autoMatchByText(inputText)) {
+                        return;
+                    }
+                }
+
+                // 若支持自定义输入内容，且输入的内容不为空，且当前没有选择的项
+                // 则设置一个默认的值，这个值不记录到程序中。只是显示和同步数据。
+                if(cfg.freedom &&
+                    inputText !== EMPTY &&
+                    data === undefined) {
+
+                    data = {
+                        value: "-1",
+                        text: inputText,
+                        freedom: true
+                    };
+                }
+
+                self._fillText(data);
+                self.fire('change', {data: data});
+
                 self._latencyHide();
             });
 
@@ -404,7 +504,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
                 // esc & tab
                 if(keyCode == 9 || keyCode == 27) {
-                    self._fillText(datalist.selected);
+                    self._fillText(self.getSelectedData());
                     self.hide();
                     return;
                 }
@@ -455,7 +555,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 function render(list) {
                     // 如果进行搜索，则表示当前选择项失效。
                     // 直接设置数据为空即可。若通过select方法来取消选择，会联动数据回填，导致输入框的内容不符合预期。
-                    var prevData = datalist.selected;
+                    var prevData = self.getSelectedData();
                     datalist.selected = view.focused = undefined;
 
                     // 但是若数据变化了，还是需要触发外部事件，便于响应处理
@@ -564,8 +664,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
  ToDo
  - selection range
  - different view
- - 目前只支持枚举不可输入，需要支持枚举可输入。
  - option disable status
+ - optgroup support
 */
 
 

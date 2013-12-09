@@ -3,7 +3,7 @@
     "version": "0.2",
     "desc": "针对大数据量渲染的下拉菜单组件",
     "cover": "",
-    "tag":"select,dropdown,combobox",
+    "tag":"select,combobox",
     "author": {
         "name": "阿克",
         "email": "ake.wgk@taobao.com",

@@ -115,10 +115,16 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
 
 ### v0.3
 
-- [*] kissy版本升级为1.4
-- [*] 修复初始直接输入的时候，下拉菜单不显示。
-- [+] input placeholder
+- [*] kissy版本升级为1.4的兼容。去掉对template的依赖。
+- [*] 替换本地的lap为“gallery”的对应版本。
+- [+] 支持placeholder显示。placeholder配置
 - [+] 增加doWith方法。针对指定的值是否匹配，以执行对应的处理逻辑。
+- [+] 支持自定义内容输入。freedom配置
+- [+] 支持自动匹配输入项。autoMatch配置
+- [+] 添加ARIA属性支持
+- [*] 部分bug修复
+    - [*] 修复初始直接输入的时候，下拉菜单不显示。
+    - [*] 修复失去焦点时没触发事件的问题
 
 ### V0.2
 

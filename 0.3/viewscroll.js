@@ -9,20 +9,21 @@ KISSY.add(function(S, Overlay, Lap) {
         TEMPLATES = {
             selectedCls: "selected",
             focusCls: "focus",
-            itemCls: "drop-menuitem",
-            prefixId: "dropmenu-item",
-            menuItem: '<li class="drop-menuitem" id="dropmenu-item{__id}" data-id="{__id}">{text}</li>'
+            prefixId: "dropmenu-",
+            prefixCls: "dropmenu-",
+            menuItem: '<li class="{prefixCls}item" id="{prefixId}item{id}" data-id="{id}">{text}</li>',
+            empty: "搜索无结果"
         };
 
     function View() {
-        this.init.apply(this, arguments);
+        this._init.apply(this, arguments);
     }
 
     S.augment(View, S.EventTarget, {
-        init: function(datalist) {
+        _init: function(datalist) {
             var self = this,
                 layer = new Overlay({
-                    prefixCls: "dropmenu-"
+                    prefixCls: TEMPLATES.prefixCls
                 });
 
             self.layer = layer;
@@ -54,13 +55,13 @@ KISSY.add(function(S, Overlay, Lap) {
              * @requires this.elWrap this.fire('UIRender');
              */
             self.elWrap = elWrap;
+            self.elWrap.attr('id', TEMPLATES.prefixId + 'wrap' + S.guid());
             self.fire('UIRender');
         },
         emptyRender: function() {
             this._list = [];
 
-            D.html(this.elList, "empty search");
-            this.visible(false);
+            D.html(this.elList, TEMPLATES.empty);
         },
         /**
          * @public 渲染指定的数据
@@ -111,9 +112,16 @@ KISSY.add(function(S, Overlay, Lap) {
         },
         _itemRender: function(data) {
             if(!data) return null;
-            var html = S.substitute(TEMPLATES.menuItem, data),
+
+            var html = S.substitute(TEMPLATES.menuItem, {
+                    prefixId: TEMPLATES.prefixId,
+                    prefixCls: TEMPLATES.prefixCls,
+                    id: data.__id,
+                    value: data.value,
+                    text: data.text
+                }),
                 el = D.create(html),
-                selected = this.datalist.selected;
+                selected = this.datalist.getSelectedData();
 
             if(selected && selected.value === data.value) {
                 this._selectByElement(el, data);
@@ -126,9 +134,10 @@ KISSY.add(function(S, Overlay, Lap) {
                 elList = self.elList;
 
             E.on(elList, 'click', function(ev) {
-                var target = ev.target;
-                if(!D.hasClass(target, TEMPLATES.itemCls)) {
-                    target = D.parent(target, TEMPLATES.itemCls);
+                var target = ev.target,
+                    itemCls = TEMPLATES.prefixCls + "item";
+                if(!D.hasClass(target, itemCls)) {
+                    target = D.parent(target, itemCls);
                 }
 
                 if(!target) return;
@@ -225,7 +234,7 @@ KISSY.add(function(S, Overlay, Lap) {
             // 因为对整个组件来说，选择操作除了表现层的改变，还有datalist数据层的处理。
             // 若focus为空的时候，并不等于取消选择。保持选择即可。
             if(this.focused) {
-                this.fire('itemSelect', {id: this.focused.__id});
+                this.fire('itemSelect', {id: this.datalist.getClientId(this.focused)});
             }
         },
         /**
@@ -257,8 +266,9 @@ KISSY.add(function(S, Overlay, Lap) {
             this.layer.set('align', align);
         },
         getElement: function(data) {
-            if(data && data.__id) {
-                return D.get('#' + TEMPLATES.prefixId + data.__id, this.elList);
+            var id = this.datalist.getClientId(data);
+            if(id) {
+                return D.get('#' + TEMPLATES.prefixId + "item" + id, this.elList);
             }else {
                 return;
             }
