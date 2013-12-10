@@ -142,6 +142,7 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
 - [+] 支持placeholder显示。placeholder配置
 - [+] 支持自定义内容输入。freedom配置
 - [+] 支持自动匹配输入项。autoMatch配置
+- [+] 支持搜索无结果的显示配置。emptyFormat配置
 - [+] 增加doWith方法。针对指定的值是否匹配，以执行对应的处理逻辑。
 - [+] 添加ARIA属性支持
 - [+] 支持自定义菜单项模板
