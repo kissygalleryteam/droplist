@@ -35,6 +35,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             placeholder: "",
             freedom: false,
             autoMatch: false,
+            // format: function(data) {return data;},
             fnDataAdapter: function(data) {
                 return data;
             },
@@ -227,91 +228,59 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
             }
         },
+        /**
+         * 设置匹配到一个值或不匹配时对应的处理函数。
+         * @param value <String> 用来匹配的值
+         * @param fnMatch <Function> 若当前选择项的值与参数value一致，则执行该函数。
+         * @param fnMismatch <Function> 若当前选择项的值与参数value不一致，则执行该函数。
+         */
+        doWith: function(value, fnMatch, fnMismatch, cfg) {
+            var self = this,
+                map = self._matchMap[value];
+
+            if(!map) {
+                map = self._matchMap[value] = {
+                    match: [],
+                    mismatch: []
+                }
+            }
+
+            map.match.push(fnMatch);
+            map.mismatch.push(fnMismatch);
+            map.setting = cfg;
+
+            // 设置的时候，根据当前选择的项立即执行一次。
+            self._runWithMatch(map, value, self.getSelectedData());
+        },
+        // 程序调用的选择操作，是从droplist对象中触发的。
+        selectByValue: function(value) {
+            var datalist = this._data;
+            var data = datalist.getDataByValue(value);
+            this._data.select(data);
+        },
+        getSelectedData: function() {
+            return this._data.getSelectedData();
+        },
+        hide: function() {
+            this._view.visible(false);
+            this.fire("hide");
+        },
+        show: function() {
+            var view = this._view,
+                elWrap = this.elWrap;
+
+            view.align({
+                node: elWrap,
+                points: ['bl','tl'],
+                offset: [0, 0]
+            });
+            view.visible(true);
+
+            this.fire("show");
+        },
         _dataFactory: function(data) {
             var dt = this.cfg.fnDataAdapter(data);
             return this._data.dataFactory(dt);
-        },
-        _fetch: function(param, callback) {
-            var self = this,
-                lastModify = S.now();
-
-            self._lastModify = lastModify;
-
-            if(!param.url) {
-                throw new Error("there is no data");
-            }
-
-            var ajaxParam = S.merge({
-                    type: "GET",
-                    dataType: "json",
-                    error: function() {
-                        alert("请求数据发生错误，请稍后重试。");
-                    }
-                }, param),
-                fnReceive = self.cfg.fnReceive,
-                fnSuccess = param.success || fnNoop;
-
-            ajaxParam.success = function(data) {
-                var returnValue = fnReceive(data);
-
-                if(!returnValue) return;
-
-                fnSuccess(returnValue);
-
-                if(returnValue.result) {
-                    callback && callback(returnValue.list);
-                }else {
-                    alert(returnValue.msg);
-                }
-            }
-
-            IO(ajaxParam);
-        },
-        _bindElement: function() {
-            var self = this,
-                elText = this.elText,
-                elValue = this.elValue,
-                view = self._view,
-                datalist = self._data;
-
-            E.on(this.elTrigger, 'click', function(ev) {
-                ev.preventDefault();
-                var isVisible = self._view.getVisible();
-
-                self._stopHideTimer();
-                // focus会触发事件：若列表是隐藏的，则会显示出来。
-                self._keepFocus();
-
-                if(!isVisible) {
-                    view.render(datalist.getDataSource());
-                    self.show();
-                }else {
-                    self.hide();
-                }
-            });
-
-            D.unselectable(this.elTrigger);
-
-            // 同步数据用。
-            elValue && self.on('change', function(ev) {
-                var data = ev.data;
-
-                elValue.value = data ? data.value : "";
-            });
-
-            // 模拟placeholder的功能
-            var elPlaceholder = this.elPlaceholder;
-            elPlaceholder && E.on(elText, 'valuechange', function(ev) {
-                var val = D.val(elText);
-
-                if(S.trim(val) === "") {
-                    D.show(elPlaceholder);
-                }else {
-                    D.hide(elPlaceholder);
-                }
-            });
-
-            self._bindInput(elText);
         },
         _bindControl: function() {
             var self = this,
@@ -375,89 +344,79 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
             });
         },
-        _keepFocus: function() {
-            E.fire(this.elText, 'focus');
+        _buildWrap: function(elWrap) {
+            var cfg = this.cfg;
+            elWrap = D.get(elWrap);
+
+            if(!elWrap) {
+                var html = S.substitute(TEMPLATES.wrap, {
+                    placeholder: cfg.placeholder
+                });
+                elWrap = D.create(html);
+            }
+
+            var elTrigger = D.get('.' + TEMPLATES.triggerCls, elWrap),
+                elText = D.get('.' + TEMPLATES.textCls, elWrap),
+                elValue = D.get('.' + TEMPLATES.valueCls, elWrap),
+                elPlaceholder = D.get('.' + TEMPLATES.placeholderCls, elWrap),
+                fieldName = this.cfg.fieldName;
+
+            // 设置value表单域的name值
+            if(fieldName) {
+                D.attr(elValue, 'name', fieldName);
+            }
+
+            this.elPlaceholder = elPlaceholder;
+            this.elWrap = elWrap;
+            this.elValue = elValue;
+            this.elText = elText;
+            this.elTrigger = elTrigger;
         },
-        /**
-         * 设置匹配到一个值或不匹配时对应的处理函数。
-         * @param value <String> 用来匹配的值
-         * @param fnMatch <Function> 若当前选择项的值与参数value一致，则执行该函数。
-         * @param fnMismatch <Function> 若当前选择项的值与参数value不一致，则执行该函数。
-         */
-        doWith: function(value, fnMatch, fnMismatch, cfg) {
+        _bindElement: function() {
             var self = this,
-                map = self._matchMap[value];
+                elText = this.elText,
+                elValue = this.elValue,
+                view = self._view,
+                datalist = self._data;
 
-            if(!map) {
-                map = self._matchMap[value] = {
-                    match: [],
-                    mismatch: []
+            E.on(this.elTrigger, 'click', function(ev) {
+                ev.preventDefault();
+                var isVisible = self._view.getVisible();
+
+                self._stopHideTimer();
+                // focus会触发事件：若列表是隐藏的，则会显示出来。
+                self._keepFocus();
+
+                if(!isVisible) {
+                    view.render(datalist.getDataSource());
+                    self.show();
+                }else {
+                    self.hide();
                 }
-            }
-
-            map.match.push(fnMatch);
-            map.mismatch.push(fnMismatch);
-            map.setting = cfg;
-
-            // 设置的时候，根据当前选择的项立即执行一次。
-            self._runWithMatch(map, value, self.getSelectedData());
-        },
-        _runWithMatch: function(map, value, data) {
-            if(!data) return;
-
-            if(value == data.value) {
-                S.each(map.match, function(fn) {
-                    fn && fn({data: data});
-                });
-            }else {
-                S.each(map.mismatch, function(fn){
-                    fn && fn({data: data});
-                });
-            }
-        },
-        _autoMatchByText: function(text) {
-            var datalist = this._data,
-                data = datalist.getDataByText(text);
-
-            datalist.select(data);
-
-            if(this._view.getVisible()) {
-                self.hide();
-            }
-
-            return !!data;
-        },
-        // 程序调用的选择操作，是从droplist对象中触发的。
-        selectByValue: function(value) {
-            var datalist = this._data;
-            var data = datalist.getDataByValue(value);
-            this._data.select(data);
-        },
-        getSelectedData: function() {
-            return this._data.getSelectedData();
-        },
-        _fillText: function(data) {
-            var elText = this.elText,
-                text = data ? data.text : EMPTY;
-
-            elText.value = text;
-        },
-        hide: function() {
-            this._view.visible(false);
-            this.fire("hide");
-        },
-        show: function() {
-            var view = this._view,
-                elWrap = this.elWrap;
-
-            view.align({
-                node: elWrap,
-                points: ['bl','tl'],
-                offset: [0, 0]
             });
-            view.visible(true);
 
-            this.fire("show");
+            D.unselectable(this.elTrigger);
+
+            // 同步数据用。
+            elValue && self.on('change', function(ev) {
+                var data = ev.data;
+
+                elValue.value = data ? data.value : "";
+            });
+
+            // 模拟placeholder的功能
+            var elPlaceholder = this.elPlaceholder;
+            elPlaceholder && E.on(elText, 'valuechange', function(ev) {
+                var val = D.val(elText);
+
+                if(S.trim(val) === "") {
+                    D.show(elPlaceholder);
+                }else {
+                    D.hide(elPlaceholder);
+                }
+            });
+
+            self._bindInput(elText);
         },
         _bindInput: function(elInput) {
             var self = this,
@@ -471,6 +430,9 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
                 // 在失去焦点的时候，自动匹配当前输入值相同的项。
                 if(cfg.autoMatch && self._autoMatchByText(inputText)) {
+                    if(this._view.getVisible()) {
+                        this.hide();
+                    }
                     return;
                 }
 
@@ -573,15 +535,89 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 }
             });
         },
+        _fetch: function(param, callback) {
+            var self = this,
+                lastModify = S.now();
+
+            self._lastModify = lastModify;
+
+            if(!param.url) {
+                throw new Error("there is no data");
+            }
+
+            var ajaxParam = S.merge({
+                    type: "GET",
+                    dataType: "json",
+                    error: function() {
+                        alert("请求数据发生错误，请稍后重试。");
+                    }
+                }, param),
+                fnReceive = self.cfg.fnReceive,
+                fnSuccess = param.success || fnNoop;
+
+            ajaxParam.success = function(data) {
+                // 过期数据丢弃。
+                if(lastModify < self._lastModify) {
+                    console.log("diu")
+                    return;
+                }
+
+                var returnValue = fnReceive(data);
+
+                if(!returnValue) return;
+
+                fnSuccess(returnValue);
+
+                if(returnValue.result) {
+                    callback && callback(returnValue.list);
+                }else {
+                    alert(returnValue.msg);
+                }
+            }
+
+            IO(ajaxParam);
+        },
+        _keepFocus: function() {
+            E.fire(this.elText, 'focus');
+        },
+        _runWithMatch: function(map, value, data) {
+            if(!data) return;
+
+            if(value == data.value) {
+                S.each(map.match, function(fn) {
+                    fn && fn({data: data});
+                });
+            }else {
+                S.each(map.mismatch, function(fn){
+                    fn && fn({data: data});
+                });
+            }
+        },
+        _autoMatchByText: function(text) {
+            var datalist = this._data,
+                data = datalist.getDataByText(text);
+
+            datalist.select(data);
+
+            return !!data;
+        },
+        _fillText: function(data) {
+            var elText = this.elText,
+                text = data ? data.text : EMPTY;
+
+            elText.value = text;
+        },
         _remoteFilter: function(kw, callback) {
             var self = this,
                 cfg = self.cfg;
 
-            var ajaxParam = S.merge({}, cfg.remote, {
-                data: {
-                    text: kw
-                }
+            var param = cfg.remote || {};
+
+            param.data = S.merge(param.data, {
+                text: kw
             });
+
+            var ajaxParam = param;
 
             self._fetch(ajaxParam, function(data) {
                 var dt = self._dataFactory(data);
@@ -620,34 +656,6 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             timer.hide  = S.later(function() {
                 self.hide();
             }, self.cfg.hideDelay);
-        },
-        _buildWrap: function(elWrap) {
-            var cfg = this.cfg;
-            elWrap = D.get(elWrap);
-
-            if(!elWrap) {
-                var html = S.substitute(TEMPLATES.wrap, {
-                    placeholder: cfg.placeholder
-                });
-                elWrap = D.create(html);
-            }
-
-            var elTrigger = D.get('.' + TEMPLATES.triggerCls, elWrap),
-                elText = D.get('.' + TEMPLATES.textCls, elWrap),
-                elValue = D.get('.' + TEMPLATES.valueCls, elWrap),
-                elPlaceholder = D.get('.' + TEMPLATES.placeholderCls, elWrap),
-                fieldName = this.cfg.fieldName;
-
-            // 设置value表单域的name值
-            if(fieldName) {
-                D.attr(elValue, 'name', fieldName);
-            }
-
-            this.elPlaceholder = elPlaceholder;
-            this.elWrap = elWrap;
-            this.elValue = elValue;
-            this.elText = elText;
-            this.elTrigger = elTrigger;
         }
     });
 
