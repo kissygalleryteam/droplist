@@ -131,6 +131,16 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
 		* 输入框失去焦点以后，隐藏列表的延迟时间。默认100ms。
 	* fieldName {String}
 		* 用于同步选择项的value值的隐藏域的name属性。
+    * freedom {Boolean}
+        * 在失去焦点时，若没有对应的选择项。则会将当前输入内容为text，默认-1为value进行存储。
+        * text只是在input中展示，value将存储到elValue表单域中。
+    * autoMatch {Boolean}
+        * 是否在失去焦点的时候自动根据当前输入值进行匹配。
+        * 若匹配到某一项的text与输入值一致，则设置该项为选中状态。
+    * emptyFormat {String | {Function}}
+        * 定制搜索结果为空时展示的内容。
+        * 支持function，其返回的html作为内容显示。参数query为当前输入的搜索关键词
+        * 也支持纯字符串。字符串直接作为内容显示。
 
 
 ### 静态方法
@@ -139,6 +149,10 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
 	* elSelect为要渲染的select元素。
 	* cfg为构造参数。若与select元素的配置有冲突，会覆盖select上的配置信息（如fieldName）。
 	* return {DropList Instance} 返回DropList实例对象。
+
+### 静态属性
+* NOT_FOUND_VALUE = -1
+    * 配置了freedom时，输入项没有匹配，且设为当前选择项时的默认value值。
 
 ### 属性
 

@@ -434,8 +434,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
                 // 在失去焦点的时候，自动匹配当前输入值相同的项。
                 if(cfg.autoMatch && self._autoMatchByText(inputText)) {
-                    if(this._view.getVisible()) {
-                        this.hide();
+                    if(self._view.getVisible()) {
+                        self.hide();
                     }
                     return;
                 }
