@@ -1,0 +1,1157 @@
+/*
+combined files : 
+
+gallery/droplist/0.3/datalist
+gallery/droplist/0.3/viewscroll
+gallery/droplist/0.3/droplist
+gallery/droplist/0.3/index
+
+*/
+/**
+ * 默认，单页scroll式的数据。
+ * 初次异步获取数据，或直接使用数据源或每次都异步获取数据。
+ */
+
+KISSY.add('gallery/droplist/0.3/datalist',function(S) {
+    var UNIQUEKEY = "__id",
+        QUEUEINDEX = '__index',
+
+        def = {
+            dataSource: null
+        };
+
+    function DataList() {
+        this._init.apply(this, arguments);
+    }
+
+    S.augment(DataList, S.EventTarget, {
+        _init: function(cfg) {
+
+            cfg = this.cfg = S.merge(def, cfg);
+            this.cache = {};
+            this._dataMap = {}
+
+            this._initSelected = cfg.selected;
+        },
+        getDataByValue: function(value) {
+            if(!this.getDataSource()) {
+                return;
+            }
+
+            var result;
+            S.each(this.getDataSource(), function(it) {
+                if(it.value === value) {
+                    result = it;
+                    return false;
+                }
+            });
+            return result;
+        },
+        getClientId: function(data) {
+            return data && data[UNIQUEKEY];
+        },
+        getDataByText: function(text) {
+            if(!this.getDataSource()) {
+                return;
+            }
+
+            var result;
+            S.each(this.getDataSource(), function(it) {
+                if(it.text === text) {
+                    result = it;
+                    return false;
+                }
+            });
+            return result;
+        },
+        select: function(id) {
+            var data = id;
+            if(!S.isPlainObject(id) && id != undefined) {
+                data = this._dataMap[id];
+            }
+
+            this._selectByData(data);
+        },
+        _selectByData: function(data) {
+            var prevData = this.selected;
+            // 同一个选项，就不需要再次处理了。
+            if(prevData == data ||
+                prevData && data && data.value === prevData.value) {
+                return;
+            }
+
+            this.selected = data;
+            this.fire('selected', {data: data});
+        },
+        getSelectedData: function() {
+            return this.selected || this._initSelected;
+        },
+        setDataSource: function(kw, data) {
+            this.cache[kw] = data;
+            this._list = data;
+        },
+        getDataSource: function(kw) {
+            kw = kw || "";
+
+            return this.cache[kw];
+        },
+        // 根据新数据，重新构造数据。
+        dataFactory: function(list) {
+            var self = this,
+                prevSelected = self.getSelectedData(),
+                result = [],
+                map = this._dataMap;
+
+            self.selected = undefined;
+
+            S.each(list, function(it, idx) {
+                var _id = S.guid();
+                if(it[UNIQUEKEY] === undefined) {
+                    it[UNIQUEKEY] = _id;
+                }
+
+                it[QUEUEINDEX] = idx;
+                map[_id] = it;
+                result.push(it);
+
+                // 匹配新数据中的选择项
+                // 模拟原生select，只以value值为准即可。
+                if(prevSelected && it.value == prevSelected.value) {
+                    self.select(_id);
+                }
+            });
+
+            delete self._initSelected;
+
+            return result;
+        }
+    });
+
+    return DataList;
+});
+/**
+ * 单页 scroll式的浮层。没有分页，没有分组。
+ */
+
+KISSY.add('gallery/droplist/0.3/viewscroll',function(S, Overlay, Lap) {
+    var D = S.DOM, E = S.Event;
+
+    var EMPTY = "",
+        TEMPLATES = {
+            selectedCls: "selected",
+            focusCls: "focus",
+            prefixId: "dropmenu-",
+            prefixCls: "dropmenu-",
+            menuItem: '<li class="{prefixCls}item" id="{prefixId}item{__id}" data-id="{__id}">{text}</li>',
+            empty: "搜索无结果"
+        },
+        def = {
+            format: function(data) {
+                return data;
+            }
+        };
+
+    function View() {
+        this._init.apply(this, arguments);
+    }
+
+    S.augment(View, S.EventTarget, {
+        _init: function(datalist, config) {
+            var self = this,
+                cfg = S.merge(def, config),
+                layer = new Overlay({
+                    prefixCls: TEMPLATES.prefixCls
+                });
+
+            self.layer = layer;
+            self.elList = D.create('<ul></ul>')
+            self.datalist = datalist;
+            self.format = cfg.format;
+
+            layer.on('afterRenderUI', function() {
+                self._UIRender();
+            });
+
+            this.on('hide', function() {
+                self.focused = undefined;
+            })
+        },
+        _UIRender: function() {
+            var self = this,
+                layer = self.layer,
+                elList = self.elList;
+
+            var elWrap = layer.get('el'),
+                elContent = layer.get('contentEl');
+
+            elContent.append(elList);
+
+            self._bindList();
+
+            /**
+             * @public 在渲染列表容器的时候触发。droplist对象用来进行焦点控制。
+             * @requires this.elWrap this.fire('UIRender');
+             */
+            self.elWrap = elWrap;
+            self.elWrap.attr('id', TEMPLATES.prefixId + 'wrap' + S.guid());
+            self.fire('UIRender');
+        },
+        emptyRender: function(html) {
+            this._list = [];
+
+            D.html(this.elList, html || TEMPLATES.empty);
+        },
+        /**
+         * @public 渲染指定的数据
+         * TODO 完善+限定高度的渲染。
+         * @param list
+         */
+        render: function(list) {
+            var self = this,
+                lap = self.lap,
+                fragment = document.createDocumentFragment();
+
+            lap && lap.stop();
+
+            // self.lap变量在这里指向的对象可能在lap.stop()方法执行后被改变了。
+            // 而变量lap还是指向原有的lap对象的，所以这里应该以self.lap来做判断。
+            if(self.lap) {
+                S.later(function() {
+                    self.render(list);
+                }, 20);
+                return true;
+            }
+
+            D.html(self.elList, EMPTY);
+
+            lap = self.lap = Lap(list, {duration: 30});
+            self._list = list;
+
+            // 每一条记录的事件响应
+            lap.handle(function(item, globalIndex) {
+                var elItem = self._itemRender(item);
+                elItem && fragment.appendChild(elItem);
+            });
+
+            // 每一批次数据的事件响应
+            lap.batch(function() {
+                D.append(fragment, self.elList);
+            });
+
+            // 数据完成以后的事件响应。
+            lap.then(function() {
+                D.append(fragment, self.elList);
+
+                self.lap = null;
+            });
+
+            lap.start();
+
+        },
+        _itemRender: function(data) {
+            if(!data) return null;
+
+            var _data = this.format(S.clone(data)),
+                html = S.substitute(TEMPLATES.menuItem, S.merge({
+                    prefixId: TEMPLATES.prefixId,
+                    prefixCls: TEMPLATES.prefixCls
+                }, _data)),
+                el = D.create(html),
+                selected = this.datalist.getSelectedData();
+
+            if(selected && selected.value === data.value) {
+                this._selectByElement(el, data);
+            }
+
+            return el;
+        },
+        _bindList: function() {
+            var self = this,
+                elList = self.elList;
+
+            E.on(elList, 'click', function(ev) {
+                var target = ev.target,
+                    itemCls = TEMPLATES.prefixCls + "item";
+                if(!D.hasClass(target, itemCls)) {
+                    target = D.parent(target, itemCls);
+                }
+
+                if(!target) return;
+                ev.stopPropagation();
+
+                var _id = D.attr(target, 'data-id');
+                self.fire('itemSelect', {id: _id})
+            });
+        },
+        /**
+         * @public 根据data._id获取元素，选择指定的元素。若不存在，则取消选择
+         * @param data
+         */
+        select: function(data) {
+            var elItem = this.getElement(data);
+
+            if(!elItem) {
+                elItem = data = undefined;
+            }
+
+            this._selectByElement(elItem, data);
+
+            this.fire('select', {data: data});
+        },
+        /**
+         * @public 根据clientId 聚焦指定的元素。若不存在，则取消聚焦
+         * @param id
+         */
+        _focus: function(data) {
+            var elItem = this.getElement(data);
+
+            // TODO 列表未渲染出来时如何处理？
+            if(!elItem) {
+                elItem = data = undefined;
+            }
+
+            this._setElementClass(elItem, this.focused, TEMPLATES.focusCls);
+
+            this.focused = data;
+            this.scrollIntoView(data);
+            this.fire('focus', {data: data});
+        },
+        _selectByElement: function(elItem, data) {
+            this._setElementClass(elItem, this.selected, TEMPLATES.selectedCls);
+
+            this.selected = data;
+            this.focused = data;
+        },
+        _setElementClass: function(el, data, cls) {
+            if(data) {
+                var elItem = this.getElement(data);
+                elItem && D.removeClass(elItem, cls);
+            }
+            el && D.addClass(el, cls);
+        },
+        focusNext: function() {
+            var focused = this.focused,
+                newFocus;
+            if(focused) {
+                var index = 0;
+                S.each(this._list, function(item, idx) {
+                    if(item.value == focused.value) {
+                        index = idx;
+                        return false;
+                    }
+                });
+                newFocus = this._list[index + 1];
+            }else {
+                newFocus = this._list[0];
+            }
+
+            this._focus(newFocus);
+        },
+        focusPrevious: function() {
+            var focused = this.focused,
+                newFocus;
+            if(focused) {
+                var index = 0;
+                S.each(this._list, function(item, idx) {
+                    if(item.value == focused.value) {
+                        index = idx;
+                        return false;
+                    }
+                });
+                newFocus = this._list[index - 1];
+            }else {
+                newFocus = this._list[this._list.length - 1];
+            }
+
+            this._focus(newFocus);
+        },
+        selectFocused: function() {
+            // 通过事件触发，而不是直接调用view的方法触发。
+            // 因为对整个组件来说，选择操作除了表现层的改变，还有datalist数据层的处理。
+            // 若focus为空的时候，并不等于取消选择。保持选择即可。
+            if(this.focused) {
+                this.fire('itemSelect', {id: this.datalist.getClientId(this.focused)});
+            }
+        },
+        /**
+         * @public 显示和隐藏
+         * @param isVisible
+         */
+        visible: function(visible) {
+            var isVisible = this.getVisible(),
+                willVisible = visible === undefined ? !isVisible : visible;
+
+            if(isVisible === willVisible) return;
+
+            if(willVisible) {
+                this.layer.show();
+                this.fire('show');
+            }else {
+                this.layer.hide();
+                this.fire('hide');
+            }
+        },
+        getVisible: function() {
+            return this.layer.get('visible');
+        },
+        /**
+         * @public 浮层的定位。按照overlay的align定义。
+         * @param align
+         */
+        align: function(align) {
+            this.layer.set('align', align);
+        },
+        getElement: function(data) {
+            var id = this.datalist.getClientId(data);
+            if(id) {
+                return D.get('#' + TEMPLATES.prefixId + "item" + id, this.elList);
+            }else {
+                return;
+            }
+        },
+        /**
+         * 指定项显示在当前可视视图内
+         */
+        scrollIntoView: function(data) {
+            var elItem = this.getElement(data);
+
+            D.scrollIntoView(elItem, this.elWrap);
+
+        }
+    });
+
+    return View;
+}, {
+    requires: ['overlay', 'gallery/lap/0.1/']
+});
+/**
+ * @fileoverview
+ * @author wuake<ake.wgk@taobao.com>
+ * @module droplist
+ **/
+
+/**
+ * 选择操作的执行路径
+ * A: view.event.itemSelect
+ * B: datalist.select()
+ * C: droplist.event.change
+ * D: droplist.elInput.event.blur (autoMatch = false)
+ * E: droplist.elInput.event.keyup (输入内容/搜索)
+ * F: droplist.elInput.event.keydown (回车选择)
+ * G: view.elWrap.event.click (鼠标选择)
+ * H: droplist.elInput.event.blur (autoMatch = true)
+ *
+ * 1. G -> A -> B -> C
+ * 2. D -> C
+ * 3. E -> C
+ * 4. F -> A -> B -> C
+ * 5. H -> B -> C
+ */
+KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View) {
+
+    var supportPlaceholder = "placeholder" in document.createElement("input");
+
+    var EMPTY = '',
+        fnNoop = function() {},
+        def = {
+            hideDelay: 100,
+            fieldName: "",
+            // droplist容器的append处理逻辑
+            insertion: document.body,
+            placeholder: "",
+            freedom: false,
+            autoMatch: false,
+//            emptyFormat: function(query) {return "没有搜索结果"},
+            // format: function(data) {return data;},
+            fnDataAdapter: function(data) {
+                return data;
+            },
+            fnReceive: function(data) {
+                return data;
+            }
+        },
+
+    TEMPLATES = {
+        wrap: ['<div class="droplist">' +
+            '<div class="drop-trigger"><i class="caret"></i></div>' +
+            '<div class="drop-wrap">',
+            supportPlaceholder ? undefined : '<label class="drop-placeholder">{placeholder}</label>',
+            '<input class="drop-text" type="text" placeholder="{placeholder}" />' +
+            '</div>' +
+            '<input class="drop-value" type="hidden" />' +
+        '</div>'].join(EMPTY),
+        textCls: "drop-text",
+        valueCls: "drop-value",
+        triggerCls: "drop-trigger",
+        placeholderCls: 'drop-placeholder'
+    },
+
+    // no operation key code
+    opKeyCode = [
+        9, // tab
+        13,// enter
+        16,// shift
+        17,// ctrl
+        18,// alt
+        20,// caps lock
+        27,// esc
+        33,// page up
+        34,// page down
+        35,// end
+        36,// home
+        37,// left arrow
+        38,// up arrow
+        39,// right arrow
+        40,// down arrow
+        45,// insert
+        91,// left window/command key
+        93 // right window/command key
+    ];
+
+    var ACTIVEDESCENDANT = 'aria-activedescendant',
+    ARIA = {
+        bind: function(instance) {
+            var listbox = instance._view,
+                elInput = instance.elText;
+
+            D.attr(instance.elWrap, {
+                "role": 'combobox'
+            });
+            D.attr(elInput, {
+                "role": "textbox"
+            });
+            D.attr(elInput, {
+                "aria-autocomplete": "list",
+                "aria-haspopup": "true"
+            });
+
+            instance.on('hide show', function(ev) {
+                D.attr(elInput, 'aria-expanded', ev.type === 'show');
+            });
+
+            listbox.on('UIRender', function(ev) {
+                var elWrap = listbox.elWrap;
+                D.attr(elInput, {
+                    "aria-owns": elWrap[0].id
+                });
+
+                listbox.on('focus', function(ev) {
+                    var data = ev.data,
+                        el = listbox.getElement(data);
+
+                    elWrap.attr(ACTIVEDESCENDANT, el ? el.id : EMPTY);
+                });
+            });
+
+            instance.on('change', function() {
+                D.attr(listbox.elWrap, ACTIVEDESCENDANT, EMPTY);
+            });
+        }
+    };
+
+    /**
+     *
+     * @class DropList
+     * @constructor
+     * @extends Base
+     */
+    function DropList() {
+
+        this._init.apply(this, arguments);
+    }
+    S.augment(DropList, S.EventTarget, /** @lends DropList.prototype*/{
+        _init: function(config) {
+            var cfg = S.merge(def, config);
+            this.cfg = cfg;
+
+            if(cfg.srcNode) {
+                this._buildWrap(cfg.srcNode);
+            }
+
+            this._data = new DataList({
+                selected: cfg.selectedItem
+            });
+            this._view = new View(this._data, {
+                format: cfg.format
+            });
+
+            this._bindControl();
+
+            this.timer = {
+                hide: null
+            };
+
+            this._matchMap = {}
+        },
+        // 渲染结构以及事件绑定等等
+        render: function() {
+            var self = this,
+                cfg = self.cfg,
+                elWrap = self.elWrap,
+                datalist = self._data;
+
+            if(!elWrap) {
+                self._buildWrap();
+                elWrap = self.elWrap;
+            }
+
+            if(!D.parent(elWrap)) {
+                var insertion = cfg.insertion;
+
+                if(S.isFunction(insertion)) {
+
+                    insertion(elWrap);
+                }else if(insertion.appendChild){
+
+                    insertion.appendChild(elWrap);
+                }else if(S.isString(insertion)) {
+
+                    insertion = D.get(insertion);
+                    if(insertion && insertion.appendChild) {
+                        insertion.appendChild(elWrap);
+                    }
+                }
+            }
+
+            this._bindElement();
+
+            // 在数据初始化之前绑定
+            ARIA.bind(this);
+
+            // render时才做初始化数据处理。
+            var ds = cfg.dataSource;
+
+            function setDataSource(data) {
+                // 预处理数据
+                var dt = self._dataFactory(data);
+                // 缓存数据
+                datalist.setDataSource("", dt);
+            }
+
+            if(S.isArray(ds)) {
+
+                setDataSource(ds)
+
+            }else if(S.isString(ds)) {
+
+                this._fetch({
+                    url: ds
+                }, function(data) {
+
+                    setDataSource(data);
+                });
+
+            }else if(S.isPlainObject(ds)) {
+
+                this._fetch(ds, function(data) {
+
+                    setDataSource(data);
+                });
+
+            }else if(S.isFunction(ds)) {
+
+                ds(function(data) {
+
+                    setDataSource(data);
+                });
+
+            }
+        },
+        /**
+         * 设置匹配到一个值或不匹配时对应的处理函数。
+         * @param value <String> 用来匹配的值
+         * @param fnMatch <Function> 若当前选择项的值与参数value一致，则执行该函数。
+         * @param fnMismatch <Function> 若当前选择项的值与参数value不一致，则执行该函数。
+         */
+        doWith: function(value, fnMatch, fnMismatch, cfg) {
+            var self = this,
+                map = self._matchMap[value];
+
+            if(!map) {
+                map = self._matchMap[value] = {
+                    match: [],
+                    mismatch: []
+                }
+            }
+
+            map.match.push(fnMatch);
+            map.mismatch.push(fnMismatch);
+            map.setting = cfg;
+
+            // 设置的时候，根据当前选择的项立即执行一次。
+            self._runWithMatch(map, value, self.getSelectedData());
+        },
+        // 程序调用的选择操作，是从droplist对象中触发的。
+        selectByValue: function(value) {
+            var datalist = this._data;
+            var data = datalist.getDataByValue(value);
+            this._data.select(data);
+        },
+        getSelectedData: function() {
+            return this._data.getSelectedData();
+        },
+        hide: function() {
+            this._view.visible(false);
+            this.fire("hide");
+        },
+        show: function() {
+            var view = this._view,
+                elWrap = this.elWrap;
+
+            view.align({
+                node: elWrap,
+                points: ['bl','tl'],
+                offset: [0, 0]
+            });
+            view.visible(true);
+
+            this.fire("show");
+        },
+        _dataFactory: function(data) {
+            var dt = this.cfg.fnDataAdapter(data);
+            return this._data.dataFactory(dt);
+        },
+        _bindControl: function() {
+            var self = this,
+                view = this._view,
+                datalist = this._data;
+
+            view.on('UIRender', function(ev) {
+                var elWrap = view.elWrap;
+
+                // 设置列表浮层不可选择。使得点击操作不会获取焦点。
+                D.unselectable(elWrap);
+                // chrome和firefox下，还需要阻止掉mousedown默认事件。
+                E.on(elWrap, 'mousedown', function(ev) {
+                    ev.preventDefault();
+                });
+            });
+
+            // 列表的鼠标点击操作和键盘回车选择操作是从view对象中触发的。
+            view.on('itemSelect', function(ev) {
+                var _id = ev.id;
+
+                self._data.select(_id);
+            });
+
+            // 键盘聚焦项操作
+            view.on('focus', function(ev) {
+                var data = ev.data;
+
+                // 将当前聚焦项填充到输入框中
+                if(data) {
+                    self._fillText(data);
+                }else {
+                    // 没有聚焦项时，显示选择项即可。
+                    self._fillText(self.getSelectedData());
+                }
+            });
+
+            // 初始化的选择是从datalist中触发的。
+            datalist.on('selected', function(ev) {
+                var data = ev.data;
+
+                // 所以要联动view层的操作
+                view.select(data);
+
+                self._fillText(data);
+
+                self.fire('change', {data: data});
+                // 选择操作完成以后，默认关闭浮层。
+                self.hide();
+            });
+
+            // doWith注册的逻辑处理
+            self.on('change', function(ev) {
+                var data = ev.data;
+
+                var map = self._matchMap;
+
+                S.each(map, function(d, v) {
+                    self._runWithMatch(d, v, data);
+                });
+
+            });
+        },
+        _buildWrap: function(elWrap) {
+            var cfg = this.cfg;
+            elWrap = D.get(elWrap);
+
+            if(!elWrap) {
+                var html = S.substitute(TEMPLATES.wrap, {
+                    placeholder: cfg.placeholder
+                });
+                elWrap = D.create(html);
+            }
+
+            var elTrigger = D.get('.' + TEMPLATES.triggerCls, elWrap),
+                elText = D.get('.' + TEMPLATES.textCls, elWrap),
+                elValue = D.get('.' + TEMPLATES.valueCls, elWrap),
+                elPlaceholder = D.get('.' + TEMPLATES.placeholderCls, elWrap),
+                fieldName = cfg.fieldName;
+
+            // 设置value表单域的name值
+            if(fieldName) {
+                D.attr(elValue, 'name', fieldName);
+                D.attr(elText, 'name', fieldName + "-text");
+            }
+
+            this.elPlaceholder = elPlaceholder;
+            this.elWrap = elWrap;
+            this.elValue = elValue;
+            this.elText = elText;
+            this.elTrigger = elTrigger;
+        },
+        _bindElement: function() {
+            var self = this,
+                elText = this.elText,
+                elValue = this.elValue,
+                view = self._view,
+                datalist = self._data;
+
+            E.on(this.elTrigger, 'click', function(ev) {
+                ev.preventDefault();
+                var isVisible = self._view.getVisible();
+
+                self._stopHideTimer();
+                // focus会触发事件：若列表是隐藏的，则会显示出来。
+                self._keepFocus();
+
+                if(!isVisible) {
+                    view.render(datalist.getDataSource());
+                    self.show();
+                }else {
+                    self.hide();
+                }
+            });
+
+            D.unselectable(this.elTrigger);
+
+            // 同步数据用。
+            elValue && self.on('change', function(ev) {
+                var data = ev.data;
+
+                elValue.value = data ? data.value : "";
+            });
+
+            // 模拟placeholder的功能
+            var elPlaceholder = this.elPlaceholder;
+            elPlaceholder && E.on(elText, 'valuechange', function(ev) {
+                var val = D.val(elText);
+
+                if(S.trim(val) === "") {
+                    D.show(elPlaceholder);
+                }else {
+                    D.hide(elPlaceholder);
+                }
+            });
+
+            self._bindInput(elText);
+        },
+        _bindInput: function(elInput) {
+            var self = this,
+                cfg = self.cfg,
+                datalist = self._data,
+                view = self._view;
+
+            E.on(elInput, 'blur', function() {
+                var data = self.getSelectedData(),
+                    inputText = elInput.value;
+
+                // 在失去焦点的时候，自动匹配当前输入值相同的项。
+                if(cfg.autoMatch && self._autoMatchByText(inputText)) {
+                    if(this._view.getVisible()) {
+                        this.hide();
+                    }
+                    return;
+                }
+
+                // 若支持自定义输入内容，且输入的内容不为空，且当前没有选择的项
+                // 则设置一个默认的值，这个值不记录到程序中。只是显示和同步数据。
+                if(cfg.freedom &&
+                    inputText !== EMPTY &&
+                    data === undefined) {
+
+                    data = {
+                        value: DropList.NOT_FOUND_VALUE,
+                        text: inputText,
+                        freedom: true
+                    };
+                }
+
+                self._fillText(data);
+                self.fire('change', {data: data});
+
+                self._latencyHide();
+            });
+
+            // keydown时检测操作
+            E.on(elInput, 'keydown', function(ev) {
+                var keyCode = ev.keyCode;
+
+                // esc & tab
+                if(keyCode == 9 || keyCode == 27) {
+                    self._fillText(self.getSelectedData());
+                    self.hide();
+                    return;
+                }
+
+                // 上下键操作
+                if(keyCode == 38 || keyCode == 40) {
+                    ev.preventDefault();
+
+                    if(!self._view.getVisible()) {
+                        view.render(datalist.getDataSource());
+                        self.show();
+                        return;
+                    }
+
+                    if(keyCode === 40) {
+                        view.focusNext();
+                    }else {
+                        view.focusPrevious();
+                    }
+                    return;
+                }
+
+                // 回车操作
+                if(keyCode == 13) {
+                    view.selectFocused();
+                }
+            });
+
+            // keyup 进行搜索和输入操作
+            E.on(elInput, 'keyup', function(ev) {
+                var keyCode = ev.keyCode;
+                // 空操作，如home/end等键的响应。
+                if(S.inArray(keyCode, opKeyCode)
+                    || keyCode >= 112 && keyCode <= 123) {
+                    return;
+                }
+
+                // 其他有效输入
+
+                // 如果值为空，则显示完整的列表
+                var kw = elInput.value;
+                if(!kw) {
+                    view.render(datalist.getDataSource());
+                    self.show();
+                    return;
+                }
+
+                function render(list) {
+                    // 如果进行搜索，则表示当前选择项失效。
+                    // 直接设置数据为空即可。若通过select方法来取消选择，会联动数据回填，导致输入框的内容不符合预期。
+                    var prevData = self.getSelectedData();
+                    datalist.selected = view.focused = undefined;
+
+                    // 但是若数据变化了，还是需要触发外部事件，便于响应处理
+                    if(prevData !== undefined) {
+                        self.fire('change', {data: undefined});
+                    }
+
+                    if(list.length === 0) {
+                        var html = "";
+                        if(S.isFunction(cfg.emptyFormat)) {
+                            html = cfg.emptyFormat(kw);
+                        }else if(S.isString(cfg.emptyFormat)) {
+                            html = cfg.emptyFormat;
+                        }
+
+                        view.emptyRender(html);
+                    }else {
+                        view.render(list);
+                    }
+                    self.show();
+                }
+
+                if(cfg.remote) {
+                    self._remoteFilter(kw, render);
+                }else {
+                    self._syncFilter(kw, render);
+                }
+            });
+        },
+        _fetch: function(param, callback) {
+            var self = this,
+                lastModify = S.now();
+
+            self._lastModify = lastModify;
+
+            if(!param.url) {
+                throw new Error("there is no data");
+            }
+
+            var ajaxParam = S.merge({
+                    type: "GET",
+                    dataType: "json",
+                    error: function() {
+                        alert("请求数据发生错误，请稍后重试。");
+                    }
+                }, param),
+                fnReceive = self.cfg.fnReceive,
+                fnSuccess = param.success || fnNoop;
+
+            ajaxParam.success = function(data) {
+                // 过期数据丢弃。
+                if(lastModify < self._lastModify) {
+                    console.log("diu")
+                    return;
+                }
+
+                var returnValue = fnReceive(data);
+
+                if(!returnValue) return;
+
+                fnSuccess(returnValue);
+
+                if(returnValue.result) {
+                    callback && callback(returnValue.list);
+                }else {
+                    alert(returnValue.msg);
+                }
+            }
+
+            IO(ajaxParam);
+        },
+        _keepFocus: function() {
+            E.fire(this.elText, 'focus');
+        },
+        _runWithMatch: function(map, value, data) {
+            if(!data) return;
+
+            if(value == data.value) {
+                S.each(map.match, function(fn) {
+                    fn && fn({data: data});
+                });
+            }else {
+                S.each(map.mismatch, function(fn){
+                    fn && fn({data: data});
+                });
+            }
+        },
+        _autoMatchByText: function(text) {
+            var datalist = this._data,
+                data = datalist.getDataByText(text);
+
+            datalist.select(data);
+
+            return !!data;
+        },
+        _fillText: function(data) {
+            var elText = this.elText,
+                text = data ? data.text : EMPTY;
+
+            elText.value = text;
+        },
+        _remoteFilter: function(kw, callback) {
+            var self = this,
+                cfg = self.cfg;
+
+            var param = cfg.remote || {};
+
+            param.data = S.merge(param.data, {
+                text: kw
+            });
+
+            var ajaxParam = param;
+
+            self._fetch(ajaxParam, function(data) {
+                var dt = self._dataFactory(data);
+                self._data.setDataSource(kw, dt);
+                callback && callback(dt);
+            });
+        },
+        _syncFilter: function(kw, callback) {
+            var self = this,
+                datalist = self._data,
+                result = [];
+
+            // 筛选出符合的元素
+            S.each(datalist.getDataSource(), function(it) {
+                if(it.text.indexOf(kw) !== -1) {
+                    result.push(it);
+                }
+            });
+
+            // 异步回调处理。
+            callback && callback(result);
+        },
+        _stopHideTimer: function() {
+            var timer = this.timer;
+            // 确定取消计时器的运行
+            if(timer.hide) {
+                timer.hide.cancel();
+                timer.hide = null;
+            }
+        },
+        _latencyHide: function() {
+            var self = this,
+                timer = self.timer;
+            self._stopHideTimer();
+
+            timer.hide  = S.later(function() {
+                self.hide();
+            }, self.cfg.hideDelay);
+        }
+    });
+
+    S.mix(DropList, {
+        NOT_FOUND_VALUE: -1
+    });
+
+    return DropList;
+
+}, {requires:['dom', 'event', 'ajax', './datalist', './viewscroll']});
+
+/*
+ ToDo
+ - selection range
+ - different view
+ - option disable status
+ - optgroup support
+*/
+
+
+
+/**
+ * @fileoverview 
+ * @author wuake<ake.wgk@taobao.com>
+ * @module droplist
+ **/
+
+KISSY.add('gallery/droplist/0.3/index',function (S, D, E, DropList) {
+
+    DropList.decorate = function(el, config) {
+        var data = [];
+
+        S.each(el.options, function(elOption) {
+            data.push({
+                text: elOption.text,
+                value: elOption.value
+            });
+        });
+
+        var selected = el.options[el.selectedIndex],
+            cfg = S.merge({
+                selectedItem: {
+                    value: selected.value,
+                    text: selected.text
+                },
+                fieldName: D.attr(el, 'name'),
+                dataSource: data,
+                insertion: function(elWrap) {
+                    D.replaceWith(el, elWrap);
+                }
+            }, config);
+
+        return new DropList(cfg);
+    };
+
+    return DropList;
+
+}, {requires:['dom', 'event', './droplist']});
+
+
+
+
