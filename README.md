@@ -24,7 +24,7 @@
 
 ## 参数详解
 
-<pre>
+````
 KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
     var droplist = new DropList({
         // 用于设置初始化的选择值。
@@ -61,6 +61,28 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
         remote: {
             url: "./search.html"
         },
+
+        /**
+         * 是否支持自定义输入内容。
+         * 在失去焦点时，若没有对应的选择项。则会将当前输入内容为text，默认-1为value进行存储。
+         */
+        freedom: true,
+
+        /**
+         * 是否在失去焦点的时候自动根据当前输入值进行匹配。
+         * 若匹配到某一项的text与输入值一致，则设置该项为选中状态。
+         */
+        autoMatch: true,
+
+        /**
+         * 若搜索结果为空，则可以定制展示的内容。
+         * 支持function，其返回的html作为内容显示。参数query为当前输入的搜索关键词
+         * 也支持纯字符串。字符串直接作为内容显示。
+         */
+        emptyFormat: function(query) {
+            return "没有与" + query + "匹配的搜索结果";
+        }
+
         // 指定插入的位置。参数el为droplist对象的容器节点。
         insertion: function(el) {
             S.one(el).insertBefore($log);
@@ -108,8 +130,7 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
     // 对于异步获取数据，在注册事件前后执行都是会触发change事件。因为数据处理总是比render迟执行。
     droplist.render();
 });
-</pre>
-
+````
 
 ## changelog
 
@@ -117,15 +138,13 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
 
 - [*] kissy版本升级为1.4的兼容。去掉对template的依赖。
 - [*] 替换本地的lap为“gallery”的对应版本。
+- [*] 部分代码调整及bug修复
 - [+] 支持placeholder显示。placeholder配置
-- [+] 增加doWith方法。针对指定的值是否匹配，以执行对应的处理逻辑。
 - [+] 支持自定义内容输入。freedom配置
 - [+] 支持自动匹配输入项。autoMatch配置
+- [+] 增加doWith方法。针对指定的值是否匹配，以执行对应的处理逻辑。
 - [+] 添加ARIA属性支持
 - [+] 支持自定义菜单项模板
-- [*] 部分bug修复
-    - [*] 修复初始直接输入的时候，下拉菜单不显示。
-    - [*] 修复失去焦点时没触发事件的问题
 
 ### V0.2
 

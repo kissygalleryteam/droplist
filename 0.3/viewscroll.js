@@ -65,10 +65,10 @@ KISSY.add(function(S, Overlay, Lap) {
             self.elWrap.attr('id', TEMPLATES.prefixId + 'wrap' + S.guid());
             self.fire('UIRender');
         },
-        emptyRender: function() {
+        emptyRender: function(html) {
             this._list = [];
 
-            D.html(this.elList, TEMPLATES.empty);
+            D.html(this.elList, html || TEMPLATES.empty);
         },
         /**
          * @public 渲染指定的数据

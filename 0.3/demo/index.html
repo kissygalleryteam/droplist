@@ -410,9 +410,27 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
         // 异步获取数据。
         // 返回的数据格式要<a href="#standard" class="tip">符合约定</a>。
         dataSource: "./getlist.html?type=1",
-        placeholder: "test",
+        placeholder: "可以直接输入内容",
+        /**
+         * 是否支持自定义输入内容。
+         * 在失去焦点时，若没有对应的选择项。则会将当前输入内容为text，默认-1为value进行存储。
+         * 默认false
+         */
         freedom: true,
+        /**
+         * 是否在失去焦点的时候自动根据当前输入值进行匹配。
+         * 若匹配到某一项的text与输入值一致，则设置该项为选中状态。
+         * 默认false
+         */
         autoMatch: true,
+        /**
+         * 若搜索结果为空，则可以定制展示的内容。
+         * 支持function，其返回的html作为内容显示。参数query为当前输入的搜索关键词
+         * 也支持纯字符串。字符串直接作为内容显示。
+         */
+        emptyFormat: function(query) {
+            return "没有与“ <strong>"+query+"</strong> ”相匹配的结果"
+        },
         // 指定插入的位置。
         insertion: '#demo3 .droplistwrap',
         format: function(data) {

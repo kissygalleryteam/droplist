@@ -35,6 +35,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             placeholder: "",
             freedom: false,
             autoMatch: false,
+//            emptyFormat: function(query) {return "没有搜索结果"},
             // format: function(data) {return data;},
             fnDataAdapter: function(data) {
                 return data;
@@ -49,7 +50,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             '<div class="drop-trigger"><i class="caret"></i></div>' +
             '<div class="drop-wrap">',
             supportPlaceholder ? undefined : '<label class="drop-placeholder">{placeholder}</label>',
-            '<input class="drop-text" type="text" name="{name}-text" placeholder="{placeholder}" />' +
+            '<input class="drop-text" type="text" placeholder="{placeholder}" />' +
             '</div>' +
             '<input class="drop-value" type="hidden" />' +
         '</div>'].join(EMPTY),
@@ -144,7 +145,9 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             this._data = new DataList({
                 selected: cfg.selectedItem
             });
-            this._view = new View(this._data, {format: cfg.format});
+            this._view = new View(this._data, {
+                format: cfg.format
+            });
 
             this._bindControl();
 
@@ -359,11 +362,12 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 elText = D.get('.' + TEMPLATES.textCls, elWrap),
                 elValue = D.get('.' + TEMPLATES.valueCls, elWrap),
                 elPlaceholder = D.get('.' + TEMPLATES.placeholderCls, elWrap),
-                fieldName = this.cfg.fieldName;
+                fieldName = cfg.fieldName;
 
             // 设置value表单域的name值
             if(fieldName) {
                 D.attr(elValue, 'name', fieldName);
+                D.attr(elText, 'name', fieldName + "-text");
             }
 
             this.elPlaceholder = elPlaceholder;
@@ -443,7 +447,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                     data === undefined) {
 
                     data = {
-                        value: "-1",
+                        value: DropList.NOT_FOUND_VALUE,
                         text: inputText,
                         freedom: true
                     };
@@ -521,7 +525,14 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                     }
 
                     if(list.length === 0) {
-                        view.emptyRender();
+                        var html = "";
+                        if(S.isFunction(cfg.emptyFormat)) {
+                            html = cfg.emptyFormat(kw);
+                        }else if(S.isString(cfg.emptyFormat)) {
+                            html = cfg.emptyFormat;
+                        }
+
+                        view.emptyRender(html);
                     }else {
                         view.render(list);
                     }
@@ -657,6 +668,10 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 self.hide();
             }, self.cfg.hideDelay);
         }
+    });
+
+    S.mix(DropList, {
+        NOT_FOUND_VALUE: -1
     });
 
     return DropList;
