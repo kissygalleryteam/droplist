@@ -7,13 +7,21 @@
 KISSY.add(function (S, D, E, DropList) {
 
     DropList.decorate = function(el, config) {
-        var data = [];
+        var data = [],
+            attributes = config && config.attributes || {};
 
         S.each(el.options, function(elOption) {
-            data.push({
+            var dt = {
                 text: elOption.text,
                 value: elOption.value
+            };
+            S.each(attributes, function(attr, key) {
+
+                dt[key] = D.attr(elOption, attr);
+
             });
+
+            data.push(dt);
         });
 
         var selected = el.options[el.selectedIndex],
@@ -25,7 +33,13 @@ KISSY.add(function (S, D, E, DropList) {
                 fieldName: D.attr(el, 'name'),
                 dataSource: data,
                 insertion: function(elWrap) {
-                    D.replaceWith(el, elWrap);
+                    try {
+                        D.replaceWith(el, elWrap);
+                    }catch(ex) {
+                        D.insertBefore(elWrap, el);
+                        D.remove(el);
+                    }
+
                 }
             }, config);
 

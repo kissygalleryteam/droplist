@@ -30,10 +30,16 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
         def = {
             hideDelay: 100,
             fieldName: "",
+            inputName: "",
+            ariaLabel: "",
             // droplist容器的append处理逻辑
             insertion: document.body,
             placeholder: "",
             freedom: false,
+            // 若非undefined，则直接用customValue作为自定义内容的value值。
+            // 若是undefined，则用当前输入框的值作为自定义内容的value
+            // freedom配置为true时有效。
+            customValue: undefined,
             autoMatch: false,
 //            emptyFormat: function(query) {return "没有搜索结果"},
             // format: function(data) {return data;},
@@ -84,7 +90,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
     var ACTIVEDESCENDANT = 'aria-activedescendant',
     ARIA = {
-        bind: function(instance) {
+        bind: function(instance, label) {
             var listbox = instance._view,
                 elInput = instance.elText;
 
@@ -96,7 +102,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             });
             D.attr(elInput, {
                 "aria-autocomplete": "list",
-                "aria-haspopup": "true"
+                "aria-haspopup": "true",
+                "aria-label": label
             });
 
             instance.on('hide show', function(ev) {
@@ -151,7 +158,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
             this._bindControl();
 
-            this.timer = {
+            this._timer = {
                 hide: null
             };
 
@@ -190,7 +197,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             this._bindElement();
 
             // 在数据初始化之前绑定
-            ARIA.bind(this);
+            ARIA.bind(this, cfg.ariaLabel);
 
             // render时才做初始化数据处理。
             var ds = cfg.dataSource;
@@ -281,6 +288,14 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
             this.fire("show");
         },
+        destroy: function() {
+
+            D.remove(this.elWrap);
+            this._data = null;
+            this._view = null;
+
+            this.fire("destroy");
+        },
         _dataFactory: function(data) {
             var dt = this.cfg.fnDataAdapter(data);
             return this._data.dataFactory(dt);
@@ -362,12 +377,13 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 elText = D.get('.' + TEMPLATES.textCls, elWrap),
                 elValue = D.get('.' + TEMPLATES.valueCls, elWrap),
                 elPlaceholder = D.get('.' + TEMPLATES.placeholderCls, elWrap),
-                fieldName = cfg.fieldName;
+                fieldName = cfg.fieldName,
+                inputName = cfg.inputName;
 
             // 设置value表单域的name值
             if(fieldName) {
                 D.attr(elValue, 'name', fieldName);
-                D.attr(elText, 'name', fieldName + "-text");
+                D.attr(elText, 'name', inputName);
             }
 
             this.elPlaceholder = elPlaceholder;
@@ -447,14 +463,14 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                     data === undefined) {
 
                     data = {
-                        value: DropList.NOT_FOUND_VALUE,
+                        value: cfg.customValue === undefined ? inputText : cfg.customValue,
                         text: inputText,
                         freedom: true
                     };
                 }
 
-                self._fillText(data);
-                self.fire('change', {data: data});
+                // 因为聚焦时会填充聚焦项的内容。失去焦点的时候需要重新设置为选择项的内容。
+                self._data.select(data);
 
                 self._latencyHide();
             });
@@ -490,6 +506,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
                 // 回车操作
                 if(keyCode == 13) {
+                    // 表单里面，输入框的回车默认触发表单提交。阻止掉
+                    ev.preventDefault();
                     view.selectFocused();
                 }
             });
@@ -569,7 +587,6 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             ajaxParam.success = function(data) {
                 // 过期数据丢弃。
                 if(lastModify < self._lastModify) {
-                    console.log("diu")
                     return;
                 }
 
@@ -652,7 +669,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             callback && callback(result);
         },
         _stopHideTimer: function() {
-            var timer = this.timer;
+            var timer = this._timer;
             // 确定取消计时器的运行
             if(timer.hide) {
                 timer.hide.cancel();
@@ -661,17 +678,13 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
         },
         _latencyHide: function() {
             var self = this,
-                timer = self.timer;
+                timer = self._timer;
             self._stopHideTimer();
 
             timer.hide  = S.later(function() {
                 self.hide();
             }, self.cfg.hideDelay);
         }
-    });
-
-    S.mix(DropList, {
-        NOT_FOUND_VALUE: -1
     });
 
     return DropList;
