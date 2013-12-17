@@ -135,7 +135,9 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
 ## changelog
 
 ### v0.3.1
-
+- [+] 在freedom模式下，配置customData，可以设置默认的value值。
+- [+] 增加inputName和ariaLabel配置，分别用于设置输入框的name属性和aria-label属性。
+- [*] 一些调整和bugfix
 
 ### v0.3
 

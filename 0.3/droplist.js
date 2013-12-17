@@ -415,7 +415,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 elValue = D.get('.' + TEMPLATES.valueCls, elWrap),
                 elPlaceholder = D.get('.' + TEMPLATES.placeholderCls, elWrap),
                 fieldName = cfg.fieldName,
-                inputName = cfg.inputName;
+                inputName = cfg.inputName || fieldName + "-text";
 
             // 设置value表单域的name值
             if(fieldName) {
