@@ -291,5 +291,5 @@ KISSY.add(function(S, Overlay, Lap) {
 
     return View;
 }, {
-    requires: ['overlay', 'gallery/lap/0.1/']
+    requires: ['overlay', 'gallery/lap/0.1/index']
 });
