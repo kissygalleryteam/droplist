@@ -39,7 +39,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             // 若非undefined，则直接用customValue作为自定义内容的value值。
             // 若是undefined，则用当前输入框的值作为自定义内容的value
             // freedom配置为true时有效。
-            customValue: undefined,
+            customData: undefined,
             autoMatch: false,
 //            emptyFormat: function(query) {return "没有搜索结果"},
             // format: function(data) {return data;},
@@ -264,12 +264,43 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
         },
         // 程序调用的选择操作，是从droplist对象中触发的。
         selectByValue: function(value) {
-            var datalist = this._data;
-            var data = datalist.getDataByValue(value);
-            this._data.select(data);
+            var datalist = this._data,
+                data = datalist.getDataByValue(value);
+
+            // 如果设置的是undefined，表示要取消选择
+            // 如果是因为搜索的结果为空，则设置为customData
+            if(value !== undefined &&
+                !data && this.cfg.freedom) {
+
+                data = this.getCustomData();
+            }
+
+            datalist.select(data);
+        },
+        // 通过data来设置
+        selectByData: function(data) {
+            var datalist = this._data,
+                dt = data ? datalist.getDataByValue(data.value) : undefined;
+
+            // 如果不是列表的有效数据，则需要判断配置是否支持自定义的数据。
+            // 支持的情况下才用传进来的自定义数据，否则还是设置为未选择。
+            if(data !== undefined &&
+                !dt && this.cfg.freedom) {
+
+                dt = data;
+            }
+
+            datalist.select(dt);
         },
         getSelectedData: function() {
             return this._data.getSelectedData();
+        },
+        getCustomData: function() {
+            var data = this.cfg.customData;
+            if(data && !data.text) {
+                data.text = this.elText.value;
+            }
+            return data;
         },
         hide: function() {
             this._view.visible(false);
@@ -296,6 +327,12 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
             this.fire("destroy");
         },
+        /**
+         * 数据预处理
+         * @param data
+         * @returns {*}
+         * @private
+         */
         _dataFactory: function(data) {
             var dt = this.cfg.fnDataAdapter(data);
             return this._data.dataFactory(dt);
@@ -449,24 +486,15 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                     inputText = elInput.value;
 
                 // 在失去焦点的时候，自动匹配当前输入值相同的项。
-                if(cfg.autoMatch && self._autoMatchByText(inputText)) {
-                    if(self._view.getVisible()) {
-                        self.hide();
-                    }
-                    return;
+                if(data === undefined && cfg.autoMatch) {
+                    data = self._autoMatchByText(inputText)
                 }
 
-                // 若支持自定义输入内容，且输入的内容不为空，且当前没有选择的项
+                // 若当前没有选择或匹配的项，且支持自定义输入内容，且输入的内容不为空
                 // 则设置一个默认的值，这个值不记录到程序中。只是显示和同步数据。
-                if(cfg.freedom &&
-                    inputText !== EMPTY &&
-                    data === undefined) {
+                if(data === undefined && cfg.freedom && inputText !== EMPTY) {
 
-                    data = {
-                        value: cfg.customValue === undefined ? inputText : cfg.customValue,
-                        text: inputText,
-                        freedom: true
-                    };
+                    data = self.getCustomData();
                 }
 
                 // 因为聚焦时会填充聚焦项的内容。失去焦点的时候需要重新设置为选择项的内容。
@@ -625,9 +653,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             var datalist = this._data,
                 data = datalist.getDataByText(text);
 
-            datalist.select(data);
-
-            return !!data;
+            return data;
         },
         _fillText: function(data) {
             var elText = this.elText,

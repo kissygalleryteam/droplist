@@ -134,6 +134,9 @@ KISSY.use('gallery/droplist/0.3/index', function (S, DropList) {
 
 ## changelog
 
+### v0.3.1
+
+
 ### v0.3
 
 - [*] kissy版本升级为1.4的兼容。去掉对template的依赖。
