@@ -97,9 +97,9 @@ KISSY.add(function(S) {
 
             S.each(list, function(it, idx) {
                 var _id = S.guid();
-                if(it[UNIQUEKEY] === undefined) {
+//                if(it[UNIQUEKEY] === undefined) {
                     it[UNIQUEKEY] = _id;
-                }
+//                }
 
                 it[QUEUEINDEX] = idx;
                 map[_id] = it;

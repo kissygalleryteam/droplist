@@ -1,5 +1,5 @@
 /**
- * @fileoverview 
+ * @fileoverview
  * @author wuake<ake.wgk@taobao.com>
  * @module droplist
  **/
@@ -33,7 +33,7 @@ KISSY.add(function (S, D, E, DropList) {
                 fieldName: D.attr(el, 'name'),
                 dataSource: data,
                 insertion: function(elWrap) {
-                    try {
+                    try {debugger;
                         D.replaceWith(el, elWrap);
                     }catch(ex) {
                         D.insertBefore(elWrap, el);

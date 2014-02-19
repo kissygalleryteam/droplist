@@ -106,9 +106,9 @@ KISSY.add('gallery/droplist/0.3/datalist',function(S) {
 
             S.each(list, function(it, idx) {
                 var _id = S.guid();
-                if(it[UNIQUEKEY] === undefined) {
+//                if(it[UNIQUEKEY] === undefined) {
                     it[UNIQUEKEY] = _id;
-                }
+//                }
 
                 it[QUEUEINDEX] = idx;
                 map[_id] = it;
@@ -129,6 +129,7 @@ KISSY.add('gallery/droplist/0.3/datalist',function(S) {
 
     return DataList;
 });
+
 /**
  * 单页 scroll式的浮层。没有分页，没有分组。
  */
@@ -422,7 +423,7 @@ KISSY.add('gallery/droplist/0.3/viewscroll',function(S, Overlay, Lap) {
 
     return View;
 }, {
-    requires: ['overlay', 'gallery/lap/0.1/']
+    requires: ['overlay', 'gallery/lap/0.1/index']
 });
 /**
  * @fileoverview
@@ -456,10 +457,16 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
         def = {
             hideDelay: 100,
             fieldName: "",
+            inputName: "",
+            ariaLabel: "",
             // droplist容器的append处理逻辑
             insertion: document.body,
             placeholder: "",
             freedom: false,
+            // 若非undefined，则直接用customValue作为自定义内容的value值。
+            // 若是undefined，则用当前输入框的值作为自定义内容的value
+            // freedom配置为true时有效。
+            customData: undefined,
             autoMatch: false,
 //            emptyFormat: function(query) {return "没有搜索结果"},
             // format: function(data) {return data;},
@@ -510,7 +517,7 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
 
     var ACTIVEDESCENDANT = 'aria-activedescendant',
     ARIA = {
-        bind: function(instance) {
+        bind: function(instance, label) {
             var listbox = instance._view,
                 elInput = instance.elText;
 
@@ -522,7 +529,8 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
             });
             D.attr(elInput, {
                 "aria-autocomplete": "list",
-                "aria-haspopup": "true"
+                "aria-haspopup": "true",
+                "aria-label": label
             });
 
             instance.on('hide show', function(ev) {
@@ -577,7 +585,7 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
 
             this._bindControl();
 
-            this.timer = {
+            this._timer = {
                 hide: null
             };
 
@@ -616,7 +624,7 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
             this._bindElement();
 
             // 在数据初始化之前绑定
-            ARIA.bind(this);
+            ARIA.bind(this, cfg.ariaLabel);
 
             // render时才做初始化数据处理。
             var ds = cfg.dataSource;
@@ -663,7 +671,15 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
          * @param fnMatch <Function> 若当前选择项的值与参数value一致，则执行该函数。
          * @param fnMismatch <Function> 若当前选择项的值与参数value不一致，则执行该函数。
          */
-        doWith: function(value, fnMatch, fnMismatch, cfg) {
+        doWith: function(value, fnMatch, fnMismatch) {
+            var self = this;
+
+            var map = self._grepMethods(value, fnMatch, fnMismatch);
+
+            // 设置的时候，根据当前选择的项立即执行一次。
+            self._runWithMatch(map, value, self.getSelectedData());
+        },
+        _grepMethods: function(value, fnMatch, fnMismatch) {
             var self = this,
                 map = self._matchMap[value];
 
@@ -674,24 +690,77 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
                 }
             }
 
-            map.match.push(fnMatch);
-            map.mismatch.push(fnMismatch);
-            map.setting = cfg;
+            var match = self._mergeMethods(map.match, fnMatch),
+                mismatch = self._mergeMethods(map.mismatch, fnMismatch);
 
-            // 设置的时候，根据当前选择的项立即执行一次。
-            self._runWithMatch(map, value, self.getSelectedData());
+            return {
+                match: match,
+                mismatch: mismatch
+            };
+        },
+        _mergeMethods: function(queue, fns) {
+            var rt = [];
+            S.each(S.makeArray(fns), function(fn) {
+                if(!S.inArray(fn, queue)) {
+                    queue.push(fn);
+                    rt.push(fn);
+                }
+            });
+
+            return rt;
+        },
+        removeMatch: function(value) {
+            var map = this._matchMap[value];
+
+            if(map) {
+                map.match.length = 0;
+                map.mismatch.length = 0;
+            }
         },
         // 程序调用的选择操作，是从droplist对象中触发的。
         selectByValue: function(value) {
-            var datalist = this._data;
-            var data = datalist.getDataByValue(value);
-            this._data.select(data);
+            var datalist = this._data,
+                data = datalist.getDataByValue(value);
+
+            // 如果设置的是undefined，表示要取消选择
+            // 如果是因为搜索的结果为空，则设置为customData
+            if(value !== undefined &&
+                !data && this.cfg.freedom) {
+
+                data = this.getCustomData();
+            }
+
+            datalist.select(data);
+        },
+        // 通过data来设置
+        selectByData: function(data) {
+            var datalist = this._data,
+                dt = data ? datalist.getDataByValue(data.value) : undefined;
+
+            // 如果不是列表的有效数据，则需要判断配置是否支持自定义的数据。
+            // 支持的情况下才用传进来的自定义数据，否则还是设置为未选择。
+            if(data !== undefined &&
+                !dt && this.cfg.freedom) {
+
+                dt = data;
+            }
+
+            datalist.select(dt);
         },
         getSelectedData: function() {
             return this._data.getSelectedData();
         },
+        getCustomData: function() {
+            var data = this.cfg.customData;
+            if(data && !data.text) {
+                data.text = this.elText.value;
+            }
+            return data;
+        },
         hide: function() {
-            this._view.visible(false);
+            var view = this._view;
+
+            view && view.visible(false);
             this.fire("hide");
         },
         show: function() {
@@ -707,6 +776,20 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
 
             this.fire("show");
         },
+        destroy: function() {
+            this.fire("destroy");
+
+            D.remove(this.elWrap);
+            this._data = null;
+            this._view = null;
+
+        },
+        /**
+         * 数据预处理
+         * @param data
+         * @returns {*}
+         * @private
+         */
         _dataFactory: function(data) {
             var dt = this.cfg.fnDataAdapter(data);
             return this._data.dataFactory(dt);
@@ -788,12 +871,13 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
                 elText = D.get('.' + TEMPLATES.textCls, elWrap),
                 elValue = D.get('.' + TEMPLATES.valueCls, elWrap),
                 elPlaceholder = D.get('.' + TEMPLATES.placeholderCls, elWrap),
-                fieldName = cfg.fieldName;
+                fieldName = cfg.fieldName,
+                inputName = cfg.inputName || fieldName + "-text";
 
             // 设置value表单域的name值
             if(fieldName) {
                 D.attr(elValue, 'name', fieldName);
-                D.attr(elText, 'name', fieldName + "-text");
+                D.attr(elText, 'name', inputName);
             }
 
             this.elPlaceholder = elPlaceholder;
@@ -859,28 +943,19 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
                     inputText = elInput.value;
 
                 // 在失去焦点的时候，自动匹配当前输入值相同的项。
-                if(cfg.autoMatch && self._autoMatchByText(inputText)) {
-                    if(self._view.getVisible()) {
-                        self.hide();
-                    }
-                    return;
+                if(data === undefined && cfg.autoMatch) {
+                    data = self._autoMatchByText(inputText)
                 }
 
-                // 若支持自定义输入内容，且输入的内容不为空，且当前没有选择的项
+                // 若当前没有选择或匹配的项，且支持自定义输入内容，且输入的内容不为空
                 // 则设置一个默认的值，这个值不记录到程序中。只是显示和同步数据。
-                if(cfg.freedom &&
-                    inputText !== EMPTY &&
-                    data === undefined) {
+                if(data === undefined && cfg.freedom && inputText !== EMPTY) {
 
-                    data = {
-                        value: DropList.NOT_FOUND_VALUE,
-                        text: inputText,
-                        freedom: true
-                    };
+                    data = self.getCustomData();
                 }
 
-                self._fillText(data);
-                self.fire('change', {data: data});
+                // 因为聚焦时会填充聚焦项的内容。失去焦点的时候需要重新设置为选择项的内容。
+                self._data.select(data);
 
                 self._latencyHide();
             });
@@ -916,6 +991,8 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
 
                 // 回车操作
                 if(keyCode == 13) {
+                    // 表单里面，输入框的回车默认触发表单提交。阻止掉
+                    ev.preventDefault();
                     view.selectFocused();
                 }
             });
@@ -995,7 +1072,6 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
             ajaxParam.success = function(data) {
                 // 过期数据丢弃。
                 if(lastModify < self._lastModify) {
-                    console.log("diu")
                     return;
                 }
 
@@ -1018,7 +1094,7 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
             E.fire(this.elText, 'focus');
         },
         _runWithMatch: function(map, value, data) {
-            if(!data) return;
+            data || (data = {});
 
             if(value == data.value) {
                 S.each(map.match, function(fn) {
@@ -1034,9 +1110,7 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
             var datalist = this._data,
                 data = datalist.getDataByText(text);
 
-            datalist.select(data);
-
-            return !!data;
+            return data;
         },
         _fillText: function(data) {
             var elText = this.elText,
@@ -1078,7 +1152,7 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
             callback && callback(result);
         },
         _stopHideTimer: function() {
-            var timer = this.timer;
+            var timer = this._timer;
             // 确定取消计时器的运行
             if(timer.hide) {
                 timer.hide.cancel();
@@ -1087,17 +1161,13 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
         },
         _latencyHide: function() {
             var self = this,
-                timer = self.timer;
+                timer = self._timer;
             self._stopHideTimer();
 
             timer.hide  = S.later(function() {
                 self.hide();
             }, self.cfg.hideDelay);
         }
-    });
-
-    S.mix(DropList, {
-        NOT_FOUND_VALUE: -1
     });
 
     return DropList;
@@ -1115,7 +1185,7 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
 
 
 /**
- * @fileoverview 
+ * @fileoverview
  * @author wuake<ake.wgk@taobao.com>
  * @module droplist
  **/
@@ -1123,13 +1193,21 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
 KISSY.add('gallery/droplist/0.3/index',function (S, D, E, DropList) {
 
     DropList.decorate = function(el, config) {
-        var data = [];
+        var data = [],
+            attributes = config && config.attributes || {};
 
         S.each(el.options, function(elOption) {
-            data.push({
+            var dt = {
                 text: elOption.text,
                 value: elOption.value
+            };
+            S.each(attributes, function(attr, key) {
+
+                dt[key] = D.attr(elOption, attr);
+
             });
+
+            data.push(dt);
         });
 
         var selected = el.options[el.selectedIndex],
@@ -1141,7 +1219,13 @@ KISSY.add('gallery/droplist/0.3/index',function (S, D, E, DropList) {
                 fieldName: D.attr(el, 'name'),
                 dataSource: data,
                 insertion: function(elWrap) {
-                    D.replaceWith(el, elWrap);
+                    try {debugger;
+                        D.replaceWith(el, elWrap);
+                    }catch(ex) {
+                        D.insertBefore(elWrap, el);
+                        D.remove(el);
+                    }
+
                 }
             }, config);
 
