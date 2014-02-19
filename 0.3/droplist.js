@@ -244,7 +244,15 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
          * @param fnMatch <Function> 若当前选择项的值与参数value一致，则执行该函数。
          * @param fnMismatch <Function> 若当前选择项的值与参数value不一致，则执行该函数。
          */
-        doWith: function(value, fnMatch, fnMismatch, cfg) {
+        doWith: function(value, fnMatch, fnMismatch) {
+            var self = this;
+
+            var map = self._grepMethods(value, fnMatch, fnMismatch);
+
+            // 设置的时候，根据当前选择的项立即执行一次。
+            self._runWithMatch(map, value, self.getSelectedData());
+        },
+        _grepMethods: function(value, fnMatch, fnMismatch) {
             var self = this,
                 map = self._matchMap[value];
 
@@ -255,12 +263,32 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 }
             }
 
-            map.match.push(fnMatch);
-            map.mismatch.push(fnMismatch);
-            map.setting = cfg;
+            var match = self._mergeMethods(map.match, fnMatch),
+                mismatch = self._mergeMethods(map.mismatch, fnMismatch);
 
-            // 设置的时候，根据当前选择的项立即执行一次。
-            self._runWithMatch(map, value, self.getSelectedData());
+            return {
+                match: match,
+                mismatch: mismatch
+            };
+        },
+        _mergeMethods: function(queue, fns) {
+            var rt = [];
+            S.each(S.makeArray(fns), function(fn) {
+                if(!S.inArray(fn, queue)) {
+                    queue.push(fn);
+                    rt.push(fn);
+                }
+            });
+
+            return rt;
+        },
+        removeMatch: function(value) {
+            var map = this._matchMap[value];
+
+            if(map) {
+                map.match.length = 0;
+                map.mismatch.length = 0;
+            }
         },
         // 程序调用的选择操作，是从droplist对象中触发的。
         selectByValue: function(value) {
@@ -303,7 +331,9 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             return data;
         },
         hide: function() {
-            this._view.visible(false);
+            var view = this._view;
+
+            view && view.visible(false);
             this.fire("hide");
         },
         show: function() {
@@ -320,12 +350,12 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             this.fire("show");
         },
         destroy: function() {
+            this.fire("destroy");
 
             D.remove(this.elWrap);
             this._data = null;
             this._view = null;
 
-            this.fire("destroy");
         },
         /**
          * 数据预处理
@@ -637,7 +667,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
             E.fire(this.elText, 'focus');
         },
         _runWithMatch: function(map, value, data) {
-            if(!data) return;
+            data || (data = {});
 
             if(value == data.value) {
                 S.each(map.match, function(fn) {
