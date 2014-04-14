@@ -436,17 +436,15 @@ KISSY.add('gallery/droplist/0.3/viewscroll',function(S, Overlay, Lap) {
  * A: view.event.itemSelect
  * B: datalist.select()
  * C: droplist.event.change
- * D: droplist.elInput.event.blur (autoMatch = false)
+ * D: droplist.elInput.event.blur
  * E: droplist.elInput.event.keyup (输入内容/搜索)
  * F: droplist.elInput.event.keydown (回车选择)
  * G: view.elWrap.event.click (鼠标选择)
- * H: droplist.elInput.event.blur (autoMatch = true)
  *
  * 1. G -> A -> B -> C
  * 2. D -> C
  * 3. E -> C
  * 4. F -> A -> B -> C
- * 5. H -> B -> C
  */
 KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View) {
 
@@ -920,7 +918,7 @@ KISSY.add('gallery/droplist/0.3/droplist',function (S, D, E, IO, DataList, View)
 
             // 模拟placeholder的功能
             var elPlaceholder = this.elPlaceholder;
-            elPlaceholder && E.on(elText, 'valuechange', function(ev) {
+            !supportPlaceholder && E.on(elText, 'valuechange', function(ev) {
                 var val = D.val(elText);
 
                 if(S.trim(val) === "") {
@@ -1219,7 +1217,7 @@ KISSY.add('gallery/droplist/0.3/index',function (S, D, E, DropList) {
                 fieldName: D.attr(el, 'name'),
                 dataSource: data,
                 insertion: function(elWrap) {
-                    try {debugger;
+                    try {
                         D.replaceWith(el, elWrap);
                     }catch(ex) {
                         D.insertBefore(elWrap, el);
