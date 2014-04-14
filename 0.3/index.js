@@ -33,7 +33,7 @@ KISSY.add(function (S, D, E, DropList) {
                 fieldName: D.attr(el, 'name'),
                 dataSource: data,
                 insertion: function(elWrap) {
-                    try {debugger;
+                    try {
                         D.replaceWith(el, elWrap);
                     }catch(ex) {
                         D.insertBefore(elWrap, el);
