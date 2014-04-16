@@ -363,7 +363,9 @@ KISSY.use('gallery/droplist/0.4/index', function (S, DropList) {
 
     // decorate方法是DropList对象的静态方法。
     // 把原生select元素渲染成droplist对象
-    var droplist = DropList.decorate($select[0]);
+    var droplist = DropList.decorate($select[0], {
+        freedom: true
+    });
 
     droplist.on('change', function(ev) {
         $log.html(printLog(ev.data));

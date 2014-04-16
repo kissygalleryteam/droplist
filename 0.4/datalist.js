@@ -66,8 +66,7 @@ KISSY.add(function(S) {
         _selectByData: function(data) {
             var prevData = this.selected;
             // 同一个选项，就不需要再次处理了。
-            if(prevData == data ||
-                prevData && data && data.value === prevData.value) {
+            if(prevData && data && data.value === prevData.value) {
                 return;
             }
 

@@ -7,6 +7,7 @@
 ## changelog
 
 ### v0.4
+- [*] bugfix
 
 ### v0.3.1
 - [+] 在freedom模式下，配置customData，可以设置默认的value值。

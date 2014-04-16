@@ -32,6 +32,7 @@ KISSY.add(function (S, D, E, DropList) {
                 },
                 fieldName: D.attr(el, 'name'),
                 dataSource: data,
+                autoMatch: true,
                 insertion: function(elWrap) {
                     try {
                         D.replaceWith(el, elWrap);
