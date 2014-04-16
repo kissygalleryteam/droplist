@@ -1,14 +1,17 @@
 {
     "name": "droplist",
-    "version": "0.3",
-    "desc": "针对大数据量渲染的下拉菜单组件",
-    "cover": "",
-    "tag":"select,combobox",
+    "comName":"Droplist",
+    "version": "0.4",
+    "desc": "",
+    "tag":"droplist",
+    "githubName":"akecn",
     "author": {
         "name": "阿克",
         "email": "ake.wgk@taobao.com",
         "page": ""
     },
+	"flexComboPort":"8081",
+	"reserveServerPort":"8080",
     "type": "kissy-gallery",
     "type-url": "http://gallery.kissyui.com/guide"
 }
