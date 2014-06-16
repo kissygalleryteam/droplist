@@ -6,29 +6,25 @@
 KISSY.add(function(S) {
     var UNIQUEKEY = "__id",
         QUEUEINDEX = '__index',
-
         def = {
             dataSource: null
         };
-
     function DataList() {
         this._init.apply(this, arguments);
     }
 
     S.augment(DataList, S.EventTarget, {
         _init: function(cfg) {
-
             cfg = this.cfg = S.merge(def, cfg);
             this.cache = {};
-            this._dataMap = {}
-
+            this._dataMap = {};
             this._initSelected = cfg.selected;
+            this.mulSelect = cfg.mulSelect;
         },
         getDataByValue: function(value) {
             if(!this.getDataSource()) {
                 return;
             }
-
             var result;
             S.each(this.getDataSource(), function(it) {
                 if(it.value === value) {
@@ -45,7 +41,6 @@ KISSY.add(function(S) {
             if(!this.getDataSource()) {
                 return;
             }
-
             var result;
             S.each(this.getDataSource(), function(it) {
                 if(it.text === text) {
@@ -60,18 +55,33 @@ KISSY.add(function(S) {
             if(!S.isPlainObject(id) && id != undefined) {
                 data = this._dataMap[id];
             }
-
             this._selectByData(data);
         },
         _selectByData: function(data) {
-            var prevData = this.selected;
-            // 同一个选项，就不需要再次处理了。
-            if(prevData && data && data.value === prevData.value) {
-                return;
+            if(this.mulSelect){
+                if(this.selected && data && S.inArray(data,this.selected)) return;
+            }else{
+                // 同一个选项，就不需要再次处理了。
+                if(this.selected && data && data.value === this.selected.value) return;
             }
-
-            this.selected = data;
-            this.fire('selected', {data: data});
+            this.fire('selected', {data:data});
+        },
+        saveData: function(data){
+            if(this.mulSelect){
+                this.selected = this.selected || [];
+                this.selected.push(data);
+            }else{
+                this.selected = data;
+            }
+            // console.log(this.selected);
+        },
+        delData:function(id){
+            for (var i = 0; i < this.selected.length; i++) {
+                if(this.selected[i].__id == id){
+                    this.selected.splice(i,1);
+                    break;
+                }
+            };
         },
         getSelectedData: function() {
             return this.selected || this._initSelected;
@@ -82,7 +92,6 @@ KISSY.add(function(S) {
         },
         getDataSource: function(kw) {
             kw = kw || "";
-
             return this.cache[kw];
         },
         // 根据新数据，重新构造数据。
@@ -106,8 +115,19 @@ KISSY.add(function(S) {
 
                 // 匹配新数据中的选择项
                 // 模拟原生select，只以value值为准即可。
-                if(prevSelected && it.value == prevSelected.value) {
-                    self.select(_id);
+                if(self.cfg.mulSelect){
+                    if(prevSelected && prevSelected.length){
+                        for (var i = 0; i < prevSelected.length; i++) {
+                            if(prevSelected[i] && it.value == prevSelected[i].value) {
+                                self.select(_id);
+                                break;
+                            }
+                        }
+                    }
+                }else{
+                    if(prevSelected && it.value == prevSelected.value) {
+                        self.select(_id);
+                    }
                 }
             });
 

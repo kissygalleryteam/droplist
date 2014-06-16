@@ -1,0 +1,136 @@
+/* 简单的，针对droplist的样式定义 */
+.droplist {
+  display: inline-block;
+  line-height: 20px;
+  border: 1px solid #aaa;
+  vertical-align: middle;
+  width: 200px;
+  margin-right: 5px;
+  background: #fff;
+}
+.droplist .drop-wrap {
+  overflow: hidden;
+}
+.droplist .drop-text {
+  outline: none;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none;
+  width: 100%;
+  float: left;
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  /* Firefox */
+
+  -webkit-box-sizing: border-box;
+  /* Safari */
+
+  padding: 3px 5px;
+  height: 22px;
+  border: 0 none;
+  margin: 2px 0;
+}
+.droplist .drop-text:focus {
+  outline: none;
+}
+.droplist .drop-placeholder {
+  position: absolute;
+  line-height: 20px;
+  color: #aaa;
+  margin-left: 2px;
+}
+.droplist .drop-trigger {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  float: right;
+  cursor: pointer;
+}
+.droplist .drop-trigger .caret {
+  width: 0;
+  height: 0;
+  display: block;
+  border: 4px dashed transparent;
+  border-top: 4px solid #000;
+  line-height: 0;
+  font-size: 0;
+  margin-top: 11px;
+  margin-left: 9px;
+}
+.dropmenu-overlay {
+  border: 1px solid #c8c9cd;
+  position: absolute;
+  left: -999px;
+  top: -999px;
+  background-color: #fff;
+  width: 200px;
+  max-height: 200px;
+  line-height: 16px;
+  overflow: auto;
+}
+.dropmenu-overlay ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.dropmenu-overlay ul li {
+  padding: 3px 5px;
+  cursor: pointer;
+}
+.dropmenu-overlay ul li:hover {
+  background-color: #ff6600;
+  color: #fff;
+}
+.dropmenu-overlay .selected,
+.dropmenu-overlay .selected:hover {
+  background-color: #fff;
+  color: #ccc;
+  cursor: default;
+}
+.dropmenu-overlay .focus {
+  outline-color: #ff6600;
+  outline-offset: -2px;
+  outline-style: auto;
+  outline-width: 3px;
+  border-top: 1px solid #dcdcdc;
+  border-bottom: 1px solid #dcdcdc;
+}
+.ks-popupmenu-hidden,
+.ks-menu-hidden,
+.dropmenu-overlay-hidden {
+  visibility: hidden;
+}
+/*多选的样式*/
+.droplist-multiple .search-choice {
+  position: relative;
+  overflow: hidden;
+  float: left;
+  white-space: nowrap;
+  margin: 2px;
+  padding: 3px 20px 3px 5px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background-color: #e4e4e4;
+  background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(20%, #f4f4f4), color-stop(50%, #f0f0f0), color-stop(52%, #e8e8e8), color-stop(100%, #eeeeee));
+  background-image: -webkit-linear-gradient(#f4f4f4 20%, #f0f0f0 50%, #e8e8e8 52%, #eeeeee 100%);
+  background-image: linear-gradient(#f4f4f4 20%, #f0f0f0 50%, #e8e8e8 52%, #eeeeee 100%);
+  background-clip: padding-box;
+  box-shadow: 0 0 2px #ffffff inset, 0 1px 0 rgba(0, 0, 0, 0.05);
+  color: #333;
+  line-height: 14px;
+  cursor: default;
+}
+.droplist-multiple .search-choice .search-choice-close {
+  cursor: pointer;
+  position: absolute;
+  top: 4px;
+  right: 3px;
+  display: block;
+  width: 12px;
+  height: 12px;
+  background: url('http://gtms03.alicdn.com/tps/i3/T1Wx04Fa8iXXanPEjh-52-37.png') -42px 1px no-repeat;
+  font-size: 1px;
+}
+.droplist-multiple .search-choice .search-choice-close:hover {
+  background-position: -42px -10px;
+}
