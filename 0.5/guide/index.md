@@ -1,3 +1,4 @@
+
 ## 综述
 
 一个解决大数据列表渲染效率的下拉菜单组件。
@@ -113,6 +114,7 @@ KISSY.use('gallery/droplist/0.5/index', function (S, DropList) {
 
 ### 构造参数
 * cfg
+    
     * dataSource {Object}
         * cfg 同KISSY.io的配置参数。默认dataType: "json",type: "GET"
 	* fieldName {String}
@@ -141,7 +143,15 @@ KISSY.use('gallery/droplist/0.5/index', function (S, DropList) {
         * 定制搜索结果为空时展示的内容。
         * 支持function，其返回的html作为内容显示。参数query为当前输入的搜索关键词
         * 也支持纯字符串。字符串直接作为内容显示。
-
+    * droplistCls {String}
+        * droplist样式钩子
+    * mulSelect {Boolean}
+        * 是否允许多选, 默认单选：false 。
+    * selectedItem {Object} | Array{Object}
+        * 默认选中项。格式：{ value: "4", text: "option4"}
+        * 如果mulSelect参数为true，允许多选, 则为Array{Object}数组对象;
+    * placeholder {String}
+        * 设置占位符内容
 
 ### 静态方法
 * decorate 用于渲染select元素为DropList对象。
@@ -150,12 +160,26 @@ KISSY.use('gallery/droplist/0.5/index', function (S, DropList) {
 	* cfg为构造参数。若与select元素的配置有冲突，会覆盖select上的配置信息（如fieldName）。
 	* return {DropList Instance} 返回DropList实例对象。
 
+* multiple 用于渲染json数据为多级联动的DropList对象。
+    * 调用方式`DropList.multiple(cfg)`
+    * cfg为构造参数。
+        * 参数dataSource: 数据源json。值类型：Array -> Json
+        * 参数paramSubcat: 子选项的属性名。值类型：Array -> Json
+        * 参数paramText: 作为选项显示内容的属性名。值类型：String
+        * 参数paramValue: 作为值的属性名。值类型：String OR Number
+        * 参数isDefault: 默认值的属性名。值类型：boolean   （选填）
+        * 参数subcatDeep: 默认显示子droplist的个数。值类型：Number  （选填）
+        * 参数isShowSub: subcatDeep设置了才生效，默认是否显示所有subDrop 值类型：boolean （选填）
+        * 参数subConfig: 子droplist配置。值类型：Array -> Json  可配置参数：同上cfg
+    * return {mulDropList Instance} 返回多级DropList组合的联动对象。
+        * 特有方法: doWith(index, value, fnMatch, fnMismatch);  index为多级的序号（0表示第一级）,其他参数同下doWith方法
+        * 特有事件: change 同下事件change
+
 ### 静态属性
 * NOT_FOUND_VALUE = -1
     * 配置了freedom时，输入项没有匹配，且设为当前选择项时的默认value值。
 
 ### 属性
-
 * elWrap
 	* DropList对象的容器。列表浮层元素不包含在该容器中。
 
@@ -191,3 +215,4 @@ KISSY.use('gallery/droplist/0.5/index', function (S, DropList) {
 ## 其他
 * 键盘操作
 	* 支持键盘操作。上下方向键控制聚焦操作，回车选择当前聚焦项。
+

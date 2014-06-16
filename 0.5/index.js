@@ -102,7 +102,7 @@ KISSY.add(function (S, D, E, DropList) {
                         dataSource: dataSource[i][config.paramSubcat] || []
                     };
                     _dataSource.push(dt);
-                    if(!_cfg.selectedItem && dataSource[i]['isDefault']){
+                    if(!_cfg.selectedItem && config.isDefault && dataSource[i][config.isDefault]){
                         if(_cfg.mulSelect){
                             _selectedItem.push(dt); 
                         }else{
