@@ -1440,7 +1440,7 @@ KISSY.add('gallery/droplist/0.5/index',function (S, D, E, DropList) {
 
     return DropList;
 
-}, {requires:['dom', 'event', './droplist']});
+}, {requires:['dom', 'event', './droplist','./index.less.css']});
 
 
 
