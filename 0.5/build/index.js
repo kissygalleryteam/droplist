@@ -1,10 +1,10 @@
 /*
 combined files : 
 
-gallery/droplist/0.4/datalist
-gallery/droplist/0.4/viewscroll
-gallery/droplist/0.4/droplist
-gallery/droplist/0.4/index
+gallery/droplist/0.5/datalist
+gallery/droplist/0.5/viewscroll
+gallery/droplist/0.5/droplist
+gallery/droplist/0.5/index
 
 */
 /**
@@ -12,32 +12,28 @@ gallery/droplist/0.4/index
  * 初次异步获取数据，或直接使用数据源或每次都异步获取数据。
  */
 
-KISSY.add('gallery/droplist/0.4/datalist',function(S) {
+KISSY.add('gallery/droplist/0.5/datalist',function(S) {
     var UNIQUEKEY = "__id",
         QUEUEINDEX = '__index',
-
         def = {
             dataSource: null
         };
-
     function DataList() {
         this._init.apply(this, arguments);
     }
 
     S.augment(DataList, S.EventTarget, {
         _init: function(cfg) {
-
             cfg = this.cfg = S.merge(def, cfg);
             this.cache = {};
-            this._dataMap = {}
-
+            this._dataMap = {};
             this._initSelected = cfg.selected;
+            this.mulSelect = cfg.mulSelect;
         },
         getDataByValue: function(value) {
             if(!this.getDataSource()) {
                 return;
             }
-
             var result;
             S.each(this.getDataSource(), function(it) {
                 if(it.value === value) {
@@ -54,7 +50,6 @@ KISSY.add('gallery/droplist/0.4/datalist',function(S) {
             if(!this.getDataSource()) {
                 return;
             }
-
             var result;
             S.each(this.getDataSource(), function(it) {
                 if(it.text === text) {
@@ -69,18 +64,33 @@ KISSY.add('gallery/droplist/0.4/datalist',function(S) {
             if(!S.isPlainObject(id) && id != undefined) {
                 data = this._dataMap[id];
             }
-
             this._selectByData(data);
         },
         _selectByData: function(data) {
-            var prevData = this.selected;
-            // 同一个选项，就不需要再次处理了。
-            if(prevData && data && data.value === prevData.value) {
-                return;
+            if(this.mulSelect){
+                if(this.selected && data && S.inArray(data,this.selected)) return;
+            }else{
+                // 同一个选项，就不需要再次处理了。
+                if(this.selected && data && data.value === this.selected.value) return;
             }
-
-            this.selected = data;
-            this.fire('selected', {data: data});
+            this.fire('selected', {data:data});
+        },
+        saveData: function(data){
+            if(this.mulSelect){
+                this.selected = this.selected || [];
+                this.selected.push(data);
+            }else{
+                this.selected = data;
+            }
+            // console.log(this.selected);
+        },
+        delData:function(id){
+            for (var i = 0; i < this.selected.length; i++) {
+                if(this.selected[i].__id == id){
+                    this.selected.splice(i,1);
+                    break;
+                }
+            };
         },
         getSelectedData: function() {
             return this.selected || this._initSelected;
@@ -91,7 +101,6 @@ KISSY.add('gallery/droplist/0.4/datalist',function(S) {
         },
         getDataSource: function(kw) {
             kw = kw || "";
-
             return this.cache[kw];
         },
         // 根据新数据，重新构造数据。
@@ -115,8 +124,19 @@ KISSY.add('gallery/droplist/0.4/datalist',function(S) {
 
                 // 匹配新数据中的选择项
                 // 模拟原生select，只以value值为准即可。
-                if(prevSelected && it.value == prevSelected.value) {
-                    self.select(_id);
+                if(self.cfg.mulSelect){
+                    if(prevSelected && prevSelected.length){
+                        for (var i = 0; i < prevSelected.length; i++) {
+                            if(prevSelected[i] && it.value == prevSelected[i].value) {
+                                self.select(_id);
+                                break;
+                            }
+                        }
+                    }
+                }else{
+                    if(prevSelected && it.value == prevSelected.value) {
+                        self.select(_id);
+                    }
                 }
             });
 
@@ -133,7 +153,7 @@ KISSY.add('gallery/droplist/0.4/datalist',function(S) {
  * 单页 scroll式的浮层。没有分页，没有分组。
  */
 
-KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
+KISSY.add('gallery/droplist/0.5/viewscroll',function(S, Overlay, Lap) {
     var D = S.DOM, E = S.Event;
 
     var EMPTY = "",
@@ -167,6 +187,7 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
             self.elList = D.create('<ul></ul>')
             self.datalist = datalist;
             self.format = cfg.format;
+            self.mulSelect = cfg.mulSelect;
 
             layer.on('afterRenderUI', function() {
                 self._UIRender();
@@ -198,7 +219,6 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
         },
         emptyRender: function(html) {
             this._list = [];
-
             D.html(this.elList, html || TEMPLATES.empty);
         },
         /**
@@ -221,12 +241,9 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
                 }, 20);
                 return true;
             }
-
             D.html(self.elList, EMPTY);
-
             lap = self.lap = Lap(list, {duration: 30});
             self._list = list;
-
             // 每一条记录的事件响应
             lap.handle(function(item, globalIndex) {
                 var elItem = self._itemRender(item);
@@ -241,12 +258,9 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
             // 数据完成以后的事件响应。
             lap.then(function() {
                 D.append(fragment, self.elList);
-
                 self.lap = null;
             });
-
             lap.start();
-
         },
         _itemRender: function(data) {
             if(!data) return null;
@@ -259,10 +273,15 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
                 el = D.create(html),
                 selected = this.datalist.getSelectedData();
 
-            if(selected && selected.value === data.value) {
-                this._selectByElement(el, data);
+            if(this.mulSelect){
+                if(selected && S.inArray(data, selected)) {
+                    this._selectByElement(el, data);
+                }
+            }else{
+                if(selected && selected.value === data.value) {
+                    this._selectByElement(el, data);
+                }
             }
-
             return el;
         },
         _bindList: function() {
@@ -289,13 +308,10 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
          */
         select: function(data) {
             var elItem = this.getElement(data);
-
             if(!elItem) {
                 elItem = data = undefined;
             }
-
             this._selectByElement(elItem, data);
-
             this.fire('select', {data: data});
         },
         /**
@@ -309,28 +325,26 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
             if(!elItem) {
                 elItem = data = undefined;
             }
-
-            this._setElementClass(elItem, this.focused, TEMPLATES.focusCls);
-
+            this._setElementClass(elItem, this.focused, TEMPLATES.focusCls,true);
             this.focused = data;
             this.scrollIntoView(data);
+            if(this.mulSelect && this.datalist.selected && data && S.inArray(data,this.datalist.selected)) return;
             this.fire('focus', {data: data});
         },
         _selectByElement: function(elItem, data) {
-            this._setElementClass(elItem, this.selected, TEMPLATES.selectedCls);
-
-            this.selected = data;
+            this._setElementClass(elItem, this.datalist.selected, TEMPLATES.selectedCls);
             this.focused = data;
         },
-        _setElementClass: function(el, data, cls) {
-            if(data) {
+        _setElementClass: function(el, data, cls, isfocus) {
+            if(data && !this.mulSelect || isfocus) {
                 var elItem = this.getElement(data);
                 elItem && D.removeClass(elItem, cls);
             }
             el && D.addClass(el, cls);
         },
         focusNext: function() {
-            var focused = this.focused,
+            var self = this,
+                focused = this.focused,
                 newFocus;
             if(focused) {
                 var index = 0;
@@ -340,15 +354,28 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
                         return false;
                     }
                 });
-                newFocus = this._list[index + 1];
+                if(this.mulSelect){
+                    toNewFocus(index+1);
+                }else{
+                    newFocus = this._list[index + 1];
+                }
             }else {
-                newFocus = this._list[0];
+                toNewFocus(0);
             }
-
             this._focus(newFocus);
+            function toNewFocus(_index){
+                var i = self._list.length - _index + 1;
+                while(i--){
+                    if(!self.datalist.selected || !S.inArray(self._list[self._list.length - i], self.datalist.selected)){
+                        newFocus = self._list[self._list.length - i];
+                        break;
+                    };
+                }
+            }
         },
         focusPrevious: function() {
-            var focused = this.focused,
+            var self = this,
+                focused = this.focused,
                 newFocus;
             if(focused) {
                 var index = 0;
@@ -358,12 +385,24 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
                         return false;
                     }
                 });
-                newFocus = this._list[index - 1];
+                if(this.mulSelect){
+                    toNewFocus(index-1);
+                }else{
+                    newFocus = this._list[index - 1];
+                }
             }else {
-                newFocus = this._list[this._list.length - 1];
+                toNewFocus(this._list.length-1);
             }
-
             this._focus(newFocus);
+            function toNewFocus(index){
+                index++;
+                while(index--){
+                    if(!self.datalist.selected || !S.inArray(self._list[index], self.datalist.selected)){
+                        newFocus = self._list[index];
+                        break;
+                    };
+                }
+            }
         },
         selectFocused: function() {
             // 通过事件触发，而不是直接调用view的方法触发。
@@ -391,6 +430,9 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
                 this.fire('hide');
             }
         },
+        destroy: function(){
+            this.layer.destroy();
+        },
         getVisible: function() {
             return this.layer.get('visible');
         },
@@ -414,9 +456,7 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
          */
         scrollIntoView: function(data) {
             var elItem = this.getElement(data);
-
             D.scrollIntoView(elItem, this.elWrap);
-
         }
     });
 
@@ -445,7 +485,7 @@ KISSY.add('gallery/droplist/0.4/viewscroll',function(S, Overlay, Lap) {
  * 3. E -> C
  * 4. F -> A -> B -> C
  */
-KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View) {
+KISSY.add('gallery/droplist/0.5/droplist',function (S, D, E, IO, DataList, View) {
 
     var supportPlaceholder = "placeholder" in document.createElement("input");
 
@@ -453,6 +493,7 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
         fnNoop = function() {},
         def = {
             hideDelay: 100,
+            droplistCls: "",
             fieldName: "",
             inputName: "",
             ariaLabel: "",
@@ -464,7 +505,8 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
             // 若是undefined，则用当前输入框的值作为自定义内容的value
             // freedom配置为true时有效。
             customData: undefined,
-            autoMatch: false,
+            autoMatch: true,
+            mulSelect: false,  //是否多选
 //            emptyFormat: function(query) {return "没有搜索结果"},
             // format: function(data) {return data;},
             fnDataAdapter: function(data) {
@@ -474,44 +516,41 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
                 return data;
             }
         },
-
-    TEMPLATES = {
-        wrap: ['<div class="droplist">' +
-            '<div class="drop-trigger"><i class="caret"></i></div>' +
-            '<div class="drop-wrap">',
-            supportPlaceholder ? undefined : '<label class="drop-placeholder">{placeholder}</label>',
-            '<input class="drop-text" type="text" placeholder="{placeholder}" />' +
-            '</div>' +
-            '<input class="drop-value" type="hidden" />' +
-        '</div>'].join(EMPTY),
-        textCls: "drop-text",
-        valueCls: "drop-value",
-        triggerCls: "drop-trigger",
-        placeholderCls: 'drop-placeholder'
-    },
-
-    // no operation key code
-    opKeyCode = [
-        9, // tab
-        13,// enter
-        16,// shift
-        17,// ctrl
-        18,// alt
-        20,// caps lock
-        27,// esc
-        33,// page up
-        34,// page down
-        35,// end
-        36,// home
-        37,// left arrow
-        38,// up arrow
-        39,// right arrow
-        40,// down arrow
-        45,// insert
-        91,// left window/command key
-        93 // right window/command key
-    ];
-
+        TEMPLATES = {
+            wrap: ['<div class="droplist {isMultiple} {droplistCls}">' +
+                '<div class="drop-trigger"><i class="caret"></i></div>' +
+                '<div class="drop-wrap">',
+                supportPlaceholder ? undefined : '<label class="drop-placeholder">{placeholder}</label>',
+                '<input class="drop-text" type="text" placeholder="{placeholder}" />' +
+                '</div>' +
+                '<input class="drop-value" type="hidden" />' +
+            '</div>'].join(EMPTY),
+            textCls: "drop-text",
+            valueCls: "drop-value",
+            triggerCls: "drop-trigger",
+            placeholderCls: 'drop-placeholder'
+        },
+        // no operation key code
+        opKeyCode = [
+            9, // tab
+            13,// enter
+            16,// shift
+            17,// ctrl
+            18,// alt
+            20,// caps lock
+            27,// esc
+            33,// page up
+            34,// page down
+            35,// end
+            36,// home
+            37,// left arrow
+            38,// up arrow
+            39,// right arrow
+            40,// down arrow
+            45,// insert
+            91,// left window/command key
+            93 // right window/command key
+        ];
     var ACTIVEDESCENDANT = 'aria-activedescendant',
     ARIA = {
         bind: function(instance, label) {
@@ -574,10 +613,13 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
             }
 
             this._data = new DataList({
-                selected: cfg.selectedItem
+                selected: cfg.selectedItem,
+                mulSelect: cfg.mulSelect
             });
+
             this._view = new View(this._data, {
-                format: cfg.format
+                format: cfg.format,
+                mulSelect: cfg.mulSelect
             });
 
             this._bindControl();
@@ -586,7 +628,7 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
                 hide: null
             };
 
-            this._matchMap = {}
+            this._matchMap = {};
         },
         // 渲染结构以及事件绑定等等
         render: function() {
@@ -598,24 +640,23 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
             if(!elWrap) {
                 self._buildWrap();
                 elWrap = self.elWrap;
+                elTrigger = self.elTrigger;
             }
 
             if(!D.parent(elWrap)) {
                 var insertion = cfg.insertion;
-
                 if(S.isFunction(insertion)) {
-
                     insertion(elWrap);
                 }else if(insertion.appendChild){
-
                     insertion.appendChild(elWrap);
                 }else if(S.isString(insertion)) {
-
                     insertion = D.get(insertion);
                     if(insertion && insertion.appendChild) {
                         insertion.appendChild(elWrap);
                     }
                 }
+                //如果是复选，移除elTrigger
+                cfg.mulSelect && elTrigger && D.remove(elTrigger);
             }
 
             this._bindElement();
@@ -684,7 +725,7 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
                 map = self._matchMap[value] = {
                     match: [],
                     mismatch: []
-                }
+                };
             }
 
             var match = self._mergeMethods(map.match, fnMatch),
@@ -759,7 +800,6 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
         },
         hide: function() {
             var view = this._view;
-
             view && view.visible(false);
             this.fire("hide");
         },
@@ -773,16 +813,14 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
                 offset: [0, 0]
             });
             view.visible(true);
-
             this.fire("show");
         },
         destroy: function() {
             this.fire("destroy");
-
             D.remove(this.elWrap);
-            this._data = null;
+            this._view.destroy();
             this._view = null;
-
+            this._data = null;
         },
         /**
          * 数据预处理
@@ -801,7 +839,6 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
 
             view.on('UIRender', function(ev) {
                 var elWrap = view.elWrap;
-
                 // 设置列表浮层不可选择。使得点击操作不会获取焦点。
                 D.unselectable(elWrap);
                 // chrome和firefox下，还需要阻止掉mousedown默认事件。
@@ -812,48 +849,36 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
 
             // 列表的鼠标点击操作和键盘回车选择操作是从view对象中触发的。
             view.on('itemSelect', function(ev) {
-                var _id = ev.id;
-
-                self._data.select(_id);
+                self._data.select(ev.id);
             });
 
             // 键盘聚焦项操作
             view.on('focus', function(ev) {
-                var data = ev.data;
-
                 // 将当前聚焦项填充到输入框中
-                if(data) {
-                    self._fillText(data);
-                }else {
-                    // 没有聚焦项时，显示选择项即可。
-                    self._fillText(self.getSelectedData());
+                if(self.cfg.mulSelect) {
+                    self.elText.value = ev.data? ev.data.text : '';
+                }else{
+                    self._fillText(ev.data || self.getSelectedData());
                 }
             });
 
             // 初始化的选择是从datalist中触发的。
             datalist.on('selected', function(ev) {
-                var data = ev.data;
-
                 // 所以要联动view层的操作
-                view.select(data);
-
-                self._fillText(data);
-
-                self.fire('change', {data: data});
+                view.select(ev.data);
+                self._fillText(ev.data);
+                datalist.saveData(ev.data);
+                self.fire('change', {data: ev.data, value:self.getValue()});
                 // 选择操作完成以后，默认关闭浮层。
                 self.hide();
             });
 
             // doWith注册的逻辑处理
             self.on('change', function(ev) {
-                var data = ev.data;
-
                 var map = self._matchMap;
-
                 S.each(map, function(d, v) {
-                    self._runWithMatch(d, v, data);
+                    self._runWithMatch(d, v, ev.data);
                 });
-
             });
         },
         _buildWrap: function(elWrap) {
@@ -862,6 +887,8 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
 
             if(!elWrap) {
                 var html = S.substitute(TEMPLATES.wrap, {
+                    isMultiple: cfg.mulSelect?'droplist-multiple':'',
+                    droplistCls: cfg.droplistCls?cfg.droplistCls:'',
                     placeholder: cfg.placeholder
                 });
                 elWrap = D.create(html);
@@ -879,7 +906,6 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
                 D.attr(elValue, 'name', fieldName);
                 D.attr(elText, 'name', inputName);
             }
-
             this.elPlaceholder = elPlaceholder;
             this.elWrap = elWrap;
             this.elValue = elValue;
@@ -888,19 +914,50 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
         },
         _bindElement: function() {
             var self = this,
+                cfg = this.cfg,
                 elText = this.elText,
                 elValue = this.elValue,
                 view = self._view,
                 datalist = self._data;
 
             E.on(this.elTrigger, 'click', function(ev) {
-                ev.preventDefault();
+                E.fire(elText, 'focus');
+            });
+            
+            D.unselectable(this.elTrigger);
+
+            // 同步数据用。
+            elValue && self.on('change', function(ev) {
+                var selected = self.getSelectedData();
+                elValue.value = self.getValue();
+            });
+
+            // 模拟placeholder的功能
+            var elPlaceholder = this.elPlaceholder;
+            !supportPlaceholder && E.on(elText, 'valuechange', function(ev) {
+                var val = D.val(elText);
+                if(S.trim(val) === "") {
+                    D.show(elPlaceholder);
+                }else {
+                    D.hide(elPlaceholder);
+                }
+            });
+            self._bindInput(elText);
+        },
+        _bindInput: function(elInput) {
+            var self = this,
+                elText = this.elText,
+                cfg = self.cfg,
+                datalist = self._data,
+                view = self._view;
+
+            E.on(elInput, 'click', function(){
                 var isVisible = self._view.getVisible();
-
+                if(!isVisible) E.fire(elText, 'focus');
+            });
+            E.on(elInput, 'focus', function(){
+                var isVisible = self._view.getVisible();
                 self._stopHideTimer();
-                // focus会触发事件：若列表是隐藏的，则会显示出来。
-                self._keepFocus();
-
                 if(!isVisible) {
                     view.render(datalist.getDataSource());
                     self.show();
@@ -909,64 +966,37 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
                 }
             });
 
-            D.unselectable(this.elTrigger);
-
-            // 同步数据用。
-            elValue && self.on('change', function(ev) {
-                var data = ev.data;
-
-                elValue.value = data ? data.value : "";
-            });
-
-            // 模拟placeholder的功能
-            var elPlaceholder = this.elPlaceholder;
-            !supportPlaceholder && E.on(elText, 'valuechange', function(ev) {
-                var val = D.val(elText);
-
-                if(S.trim(val) === "") {
-                    D.show(elPlaceholder);
-                }else {
-                    D.hide(elPlaceholder);
-                }
-            });
-
-            self._bindInput(elText);
-        },
-        _bindInput: function(elInput) {
-            var self = this,
-                cfg = self.cfg,
-                datalist = self._data,
-                view = self._view;
-
             E.on(elInput, 'blur', function() {
-                var data = self.getSelectedData(),
-                    inputText = elInput.value;
-
+                var inputText = elInput.value,
+                    data;
                 // 在失去焦点的时候，自动匹配当前输入值相同的项。
-                if(data === undefined && cfg.autoMatch) {
-                    data = self._autoMatchByText(inputText)
+                if(cfg.autoMatch) {
+                    data = self._autoMatchByText(inputText);
+                    if(data && self.getSelectedData() && S.inArray(data, self.getSelectedData())){
+                        data = undefined;
+                    }
                 }
-
                 // 若当前没有选择或匹配的项，且支持自定义输入内容，且输入的内容不为空
                 // 则设置一个默认的值，这个值不记录到程序中。只是显示和同步数据。
-                if(data === undefined && cfg.freedom && inputText !== EMPTY) {
-
+                if(!cfg.mulSelect && data === undefined && cfg.freedom && inputText !== EMPTY) {
                     data = self.getCustomData();
                 }
-
                 // 因为聚焦时会填充聚焦项的内容。失去焦点的时候需要重新设置为选择项的内容。
-                self._data.select(data);
-
+                if(data){
+                    self._data.select(data);
+                }else{
+                    self._fillText(null);
+                    self.fire('change', {data: undefined, value:self.getValue()});
+                }
                 self._latencyHide();
             });
 
             // keydown时检测操作
             E.on(elInput, 'keydown', function(ev) {
                 var keyCode = ev.keyCode;
-
+                
                 // esc & tab
                 if(keyCode == 9 || keyCode == 27) {
-                    self._fillText(self.getSelectedData());
                     self.hide();
                     return;
                 }
@@ -995,6 +1025,7 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
                     ev.preventDefault();
                     view.selectFocused();
                 }
+                
             });
 
             // keyup 进行搜索和输入操作
@@ -1017,16 +1048,15 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
                 }
 
                 function render(list) {
-                    // 如果进行搜索，则表示当前选择项失效。
-                    // 直接设置数据为空即可。若通过select方法来取消选择，会联动数据回填，导致输入框的内容不符合预期。
-                    var prevData = self.getSelectedData();
-                    datalist.selected = view.focused = undefined;
-
-                    // 但是若数据变化了，还是需要触发外部事件，便于响应处理
-                    if(prevData !== undefined) {
-                        self.fire('change', {data: undefined});
+                    if(!cfg.mulSelect){
+                        var prevData = self.getSelectedData();
+                        datalist.selected = undefined;
+                        // 但是若数据变化了，还是需要触发外部事件，便于响应处理
+                        if(prevData !== undefined) {
+                            self.fire('change', {data: undefined, value:self.getValue()});
+                        }
                     }
-
+                    view.focused = undefined;
                     if(list.length === 0) {
                         var html = "";
                         if(S.isFunction(cfg.emptyFormat)) {
@@ -1034,14 +1064,12 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
                         }else if(S.isString(cfg.emptyFormat)) {
                             html = cfg.emptyFormat;
                         }
-
                         view.emptyRender(html);
                     }else {
                         view.render(list);
                     }
                     self.show();
                 }
-
                 if(cfg.remote) {
                     self._remoteFilter(kw, render);
                 }else {
@@ -1090,9 +1118,7 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
 
             IO(ajaxParam);
         },
-        _keepFocus: function() {
-            E.fire(this.elText, 'focus');
-        },
+        
         _runWithMatch: function(map, value, data) {
             data || (data = {});
 
@@ -1109,14 +1135,64 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
         _autoMatchByText: function(text) {
             var datalist = this._data,
                 data = datalist.getDataByText(text);
-
             return data;
         },
         _fillText: function(data) {
-            var elText = this.elText,
-                text = data ? data.text : EMPTY;
-
-            elText.value = text;
+            var elText = this.elText;
+            var elPlaceholder = this.elPlaceholder;
+            if(this.cfg.mulSelect){
+                data && this._addChosen(data);
+                elText.value = EMPTY;
+            }else{
+                elText.value = data ? data.text : EMPTY;
+            }
+        },
+        _addChosen: function(data){
+            var elText = this.elText;
+            var TEMPLATES = '<div class="search-choice">'+
+                                '<span>{text}</span>'+
+                                '<a class="search-choice-close" data-id="{__id}"></a>'+
+                            '</div>';
+            var html = S.substitute(TEMPLATES, data);
+            cOption = D.create(html);
+            D.insertBefore(cOption,elText);
+            this._bindDelChosen(cOption);
+            //适配input宽度，占位
+            this._autoMatchInputWidth();
+        },
+        _bindDelChosen: function(cOption){
+            var self = this;
+            var aClose = D.get("a",cOption);
+            E.on(aClose,"click",function(ev){
+                ev.preventDefault();
+                D.remove(cOption);
+                var id = D.attr(this,"data-id");
+                self._data.delData(id);
+                self._autoMatchInputWidth();
+                self.fire('change', {data: undefined, value:self.getValue()});
+            });
+        },
+        _autoMatchInputWidth: function(){
+            var elText = this.elText, 
+                allOpt = D.siblings(elText),
+                maxW = D.width(D.parent(elText)),
+                curW = 0;
+            if(allOpt.length){
+                for (var i = 0; i < allOpt.length; i++) {
+                    var wid = D.outerWidth(allOpt[i])+parseInt(D.css(allOpt[i],"marginLeft"))+parseInt(D.css(allOpt[i],"marginRight"));
+                    curW+=wid;
+                    if(curW > maxW){
+                        curW = wid;
+                    }
+                };
+                D.css(elText,"width",(maxW-curW-3<50?"100%":maxW-curW-3));
+                D.removeAttr(elText,"placeholder");
+                !supportPlaceholder && D.hide(elPlaceholder);
+            }else{
+                D.css(elText,"width","100%");
+                D.attr(elText,"placeholder",this.cfg.placeholder);
+                !supportPlaceholder && D.show(elPlaceholder);
+            }
         },
         _remoteFilter: function(kw, callback) {
             var self = this,
@@ -1167,13 +1243,24 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
             timer.hide  = S.later(function() {
                 self.hide();
             }, self.cfg.hideDelay);
+        },
+        getValue: function(){
+            var selected = this.getSelectedData();
+            if(this.cfg.mulSelect){
+                var arrValue = [];
+                if(selected && selected.length){
+                    for (var i = 0; i < selected.length; i++) {
+                        arrValue.push(selected[i].value);
+                    }
+                }
+                return arrValue.join(",");
+            }else{
+                return selected?selected.value:"";
+            }
         }
     });
-
     return DropList;
-
 }, {requires:['dom', 'event', 'ajax', './datalist', './viewscroll']});
-
 /*
  ToDo
  - selection range
@@ -1190,33 +1277,39 @@ KISSY.add('gallery/droplist/0.4/droplist',function (S, D, E, IO, DataList, View)
  * @module droplist
  **/
 
-KISSY.add('gallery/droplist/0.4/index',function (S, D, E, DropList) {
+KISSY.add('gallery/droplist/0.5/index',function (S, D, E, DropList) {
 
     DropList.decorate = function(el, config) {
         var data = [],
-            attributes = config && config.attributes || {};
-
-        S.each(el.options, function(elOption) {
+            attributes = config && config.attributes || {},
+            selectedItem = config.mulSelect?[]:"";
+        S.each(el.options, function(elOption,index) {
             var dt = {
                 text: elOption.text,
                 value: elOption.value
             };
             S.each(attributes, function(attr, key) {
-
                 dt[key] = D.attr(elOption, attr);
-
             });
-
             data.push(dt);
+            if(D.attr(elOption,"data-default")=="true") {
+                if(config.mulSelect){
+                    selectedItem.push(dt);
+                }else{
+                    selectedItem = dt;
+                }
+            }
         });
-
-        var selected = el.options[el.selectedIndex],
-            cfg = S.merge({
-                selectedItem: {
-                    value: selected.value,
-                    text: selected.text
-                },
+        if(config.mulSelect){
+            if(!selectedItem.length) selectedItem.push(data[0]);
+        }else{
+            if(!selectedItem) selectedItem = data[0];
+        }
+        var cfg = S.merge({
+                selectedItem: selectedItem,
+                placeholder: D.attr(el, 'placeholder'),
                 fieldName: D.attr(el, 'name'),
+                mulSelect: D.attr(el, 'multiple')?true:false,
                 dataSource: data,
                 autoMatch: true,
                 insertion: function(elWrap) {
@@ -1226,11 +1319,123 @@ KISSY.add('gallery/droplist/0.4/index',function (S, D, E, DropList) {
                         D.insertBefore(elWrap, el);
                         D.remove(el);
                     }
-
                 }
             }, config);
-
         return new DropList(cfg);
+    };
+
+    DropList.multiple = function(config) {
+        if(!config || !config.dataSource || !config.dataSource.length) return;
+        // 创建存储所有droplist的对象
+        function MulDroplist(){
+            this.init();
+        };
+        S.augment(MulDroplist, S.EventTarget,{
+            data: [],
+            arrDoWith: [],
+            init: function(){
+                //创建第一级droplist
+                this.createDropList(config.dataSource);
+            },
+            doWith: function(index, value, callback, errcallback){
+                if(this.data[index]){
+                    this.data[index].doWith(value, callback, errcallback);
+                }
+                this.arrDoWith[index] = arguments;
+            },
+            fireChange: function(data){
+                var self=this, selData = [];
+                for (var i = 0; i < data.length; i++) {
+                    data[i]._data.selected && selData.push(data[i]._data.selected);
+                };
+                self.fire("change", {data: selData});
+            },
+            createDropList: function(dataSource){
+                var self = this,
+                    mData = this.data,
+                    _dataSource = [];
+
+                //创建droplist对象
+                config.subConfig == config.subConfig || [];
+                config.subConfig[mData.length] = config.subConfig[mData.length] || {};
+                var _cfg = S.merge({
+                        droplistCls: config.droplistCls,
+                        insertion: config.insertion,
+                        dataSource: _dataSource,
+                        freedom: config.freedom,
+                        mulSelect: config.mulSelect
+                    }, config.subConfig[mData.length]);
+
+                var _selectedItem = _cfg.mulSelect?[]:"";
+                // 转成标准数据格式
+                for (var i = 0; i < dataSource.length; i++) {
+                    var dt = {
+                        text: dataSource[i][config.paramText],
+                        value: dataSource[i][config.paramValue],
+                        dataSource: dataSource[i][config.paramSubcat] || []
+                    };
+                    _dataSource.push(dt);
+                    if(!_cfg.selectedItem && dataSource[i]['isDefault']){
+                        if(_cfg.mulSelect){
+                            _selectedItem.push(dt); 
+                        }else{
+                            _selectedItem = dt;
+                        }
+                    }
+                };
+                _cfg.selectedItem = _cfg.selectedItem || _selectedItem;
+                //生成droplist
+                droplist = new DropList(_cfg);
+                //保存对象
+                mData.push(droplist);
+                //设置当前深度
+                droplist.deep = mData.length;
+                //绑定注册事件
+                if(self.arrDoWith[mData.length-1]){
+                    droplist.doWith(self.arrDoWith[mData.length-1][1],self.arrDoWith[mData.length-1][2],self.arrDoWith[mData.length-1][3]);
+                };
+                // 值发生变化的时候触发change事件
+                droplist.on('change', function(ev) {
+                    // if(!ev.data) return;
+                    //销毁 或清空 原所有子级
+                    var curDroplist = ev.currentTarget,
+                        selected = curDroplist._data.selected;
+                    while(mData.length > curDroplist.deep){
+                        mData.pop().destroy();
+                    }
+                    //如果是最后一级，则不生成下级
+                    if(config.subcatDeep && mData.length == config.subcatDeep) return;
+                    //生成下级
+                    if(curDroplist.cfg.mulSelect){
+                        var newDataSource = [];
+                        if(selected && selected.length){
+                            for (var i = 0; i < selected.length; i++) {
+                                if(selected[i].dataSource.length) newDataSource = newDataSource.concat(selected[i].dataSource);
+                            };
+                        }
+                        newDataSource.length && self.createDropList(newDataSource);
+                        (!ev.data || newDataSource.length) && createSub();
+                    }else{
+                        ev.data && ev.data.dataSource && ev.data.dataSource.length && self.createDropList(ev.data.dataSource);
+                        (!ev.data || ev.data.dataSource.length) && createSub();
+                    }
+                    //生成剩下的层级
+                    function createSub(){
+                        if(config.isShowSub && config.subcatDeep){
+                            while(config.subcatDeep - mData.length){
+                                self.createDropList([]);
+                            }
+                        }
+                    }
+                    //触发change事件
+                    self.fireChange(mData);
+                });
+                droplist.render();
+                //是否显示全部subDrop
+                config.isShowSub && config.subcatDeep && mData.length < config.subcatDeep && self.createDropList([]);
+            }
+        });
+        return new MulDroplist();
     };
 
     return DropList;

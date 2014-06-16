@@ -1,10 +1,18 @@
 ## droplist
 
-* 版本：0.4
-* 教程：[http://gallery.kissyui.com/droplist/0.4/guide/index.html](http://gallery.kissyui.com/droplist/0.4/guide/index.html)
-* demo：[http://gallery.kissyui.com/droplist/0.4/demo/index.html](http://gallery.kissyui.com/droplist/0.4/demo/index.html)
+* 版本：0.5
+* 教程：[http://gallery.kissyui.com/droplist/0.5/guide/index.html](http://gallery.kissyui.com/droplist/0.5/guide/index.html)
+* demo：[http://gallery.kissyui.com/droplist/0.5/demo/index.html](http://gallery.kissyui.com/droplist/0.5/demo/index.html)
 
 ## changelog
+
+### v0.5
+- [+] 增加复选select功能
+- [+] 增加由json数据渲染多级联动select功能,支持单选联动、多选联动、混合联动
+- [+] 增加了droplist的样式钩子，可配置样式名。config属性名: droplistCls
+- [+] 从现有select结构渲染，增加了placeholder属性配置占位符。
+
+
 
 ### v0.4
 - [*] bugfix

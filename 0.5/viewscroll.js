@@ -36,6 +36,7 @@ KISSY.add(function(S, Overlay, Lap) {
             self.elList = D.create('<ul></ul>')
             self.datalist = datalist;
             self.format = cfg.format;
+            self.mulSelect = cfg.mulSelect;
 
             layer.on('afterRenderUI', function() {
                 self._UIRender();
@@ -67,7 +68,6 @@ KISSY.add(function(S, Overlay, Lap) {
         },
         emptyRender: function(html) {
             this._list = [];
-
             D.html(this.elList, html || TEMPLATES.empty);
         },
         /**
@@ -90,12 +90,9 @@ KISSY.add(function(S, Overlay, Lap) {
                 }, 20);
                 return true;
             }
-
             D.html(self.elList, EMPTY);
-
             lap = self.lap = Lap(list, {duration: 30});
             self._list = list;
-
             // 每一条记录的事件响应
             lap.handle(function(item, globalIndex) {
                 var elItem = self._itemRender(item);
@@ -110,12 +107,9 @@ KISSY.add(function(S, Overlay, Lap) {
             // 数据完成以后的事件响应。
             lap.then(function() {
                 D.append(fragment, self.elList);
-
                 self.lap = null;
             });
-
             lap.start();
-
         },
         _itemRender: function(data) {
             if(!data) return null;
@@ -128,10 +122,15 @@ KISSY.add(function(S, Overlay, Lap) {
                 el = D.create(html),
                 selected = this.datalist.getSelectedData();
 
-            if(selected && selected.value === data.value) {
-                this._selectByElement(el, data);
+            if(this.mulSelect){
+                if(selected && S.inArray(data, selected)) {
+                    this._selectByElement(el, data);
+                }
+            }else{
+                if(selected && selected.value === data.value) {
+                    this._selectByElement(el, data);
+                }
             }
-
             return el;
         },
         _bindList: function() {
@@ -158,13 +157,10 @@ KISSY.add(function(S, Overlay, Lap) {
          */
         select: function(data) {
             var elItem = this.getElement(data);
-
             if(!elItem) {
                 elItem = data = undefined;
             }
-
             this._selectByElement(elItem, data);
-
             this.fire('select', {data: data});
         },
         /**
@@ -178,28 +174,26 @@ KISSY.add(function(S, Overlay, Lap) {
             if(!elItem) {
                 elItem = data = undefined;
             }
-
-            this._setElementClass(elItem, this.focused, TEMPLATES.focusCls);
-
+            this._setElementClass(elItem, this.focused, TEMPLATES.focusCls,true);
             this.focused = data;
             this.scrollIntoView(data);
+            if(this.mulSelect && this.datalist.selected && data && S.inArray(data,this.datalist.selected)) return;
             this.fire('focus', {data: data});
         },
         _selectByElement: function(elItem, data) {
-            this._setElementClass(elItem, this.selected, TEMPLATES.selectedCls);
-
-            this.selected = data;
+            this._setElementClass(elItem, this.datalist.selected, TEMPLATES.selectedCls);
             this.focused = data;
         },
-        _setElementClass: function(el, data, cls) {
-            if(data) {
+        _setElementClass: function(el, data, cls, isfocus) {
+            if(data && !this.mulSelect || isfocus) {
                 var elItem = this.getElement(data);
                 elItem && D.removeClass(elItem, cls);
             }
             el && D.addClass(el, cls);
         },
         focusNext: function() {
-            var focused = this.focused,
+            var self = this,
+                focused = this.focused,
                 newFocus;
             if(focused) {
                 var index = 0;
@@ -209,15 +203,28 @@ KISSY.add(function(S, Overlay, Lap) {
                         return false;
                     }
                 });
-                newFocus = this._list[index + 1];
+                if(this.mulSelect){
+                    toNewFocus(index+1);
+                }else{
+                    newFocus = this._list[index + 1];
+                }
             }else {
-                newFocus = this._list[0];
+                toNewFocus(0);
             }
-
             this._focus(newFocus);
+            function toNewFocus(_index){
+                var i = self._list.length - _index + 1;
+                while(i--){
+                    if(!self.datalist.selected || !S.inArray(self._list[self._list.length - i], self.datalist.selected)){
+                        newFocus = self._list[self._list.length - i];
+                        break;
+                    };
+                }
+            }
         },
         focusPrevious: function() {
-            var focused = this.focused,
+            var self = this,
+                focused = this.focused,
                 newFocus;
             if(focused) {
                 var index = 0;
@@ -227,12 +234,24 @@ KISSY.add(function(S, Overlay, Lap) {
                         return false;
                     }
                 });
-                newFocus = this._list[index - 1];
+                if(this.mulSelect){
+                    toNewFocus(index-1);
+                }else{
+                    newFocus = this._list[index - 1];
+                }
             }else {
-                newFocus = this._list[this._list.length - 1];
+                toNewFocus(this._list.length-1);
             }
-
             this._focus(newFocus);
+            function toNewFocus(index){
+                index++;
+                while(index--){
+                    if(!self.datalist.selected || !S.inArray(self._list[index], self.datalist.selected)){
+                        newFocus = self._list[index];
+                        break;
+                    };
+                }
+            }
         },
         selectFocused: function() {
             // 通过事件触发，而不是直接调用view的方法触发。
@@ -260,6 +279,9 @@ KISSY.add(function(S, Overlay, Lap) {
                 this.fire('hide');
             }
         },
+        destroy: function(){
+            this.layer.destroy();
+        },
         getVisible: function() {
             return this.layer.get('visible');
         },
@@ -283,9 +305,7 @@ KISSY.add(function(S, Overlay, Lap) {
          */
         scrollIntoView: function(data) {
             var elItem = this.getElement(data);
-
             D.scrollIntoView(elItem, this.elWrap);
-
         }
     });
 
