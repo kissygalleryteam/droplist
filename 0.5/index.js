@@ -27,11 +27,6 @@ KISSY.add(function (S, D, E, DropList) {
                 }
             }
         });
-        if(config.mulSelect){
-            if(!selectedItem.length) selectedItem.push(data[0]);
-        }else{
-            if(!selectedItem) selectedItem = data[0];
-        }
         var cfg = S.merge({
                 selectedItem: selectedItem,
                 placeholder: D.attr(el, 'placeholder'),

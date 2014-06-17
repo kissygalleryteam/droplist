@@ -11,10 +11,10 @@
         overflow: hidden;
     }
     .drop-text {
-        outline: none;
-        border: 0 !important;
-        background: transparent !important;
-        box-shadow: none;
+        outline: none!important;
+        border: 0!important;
+        background: transparent!important;
+        box-shadow: none!important;
         width:100%;
         float: left;
         box-sizing:border-box;
@@ -25,7 +25,11 @@
         border: 0 none;
         margin: 2px 0;
         &:focus{
-           outline: none; 
+            outline: none!important;
+            border: 0!important;
+            -webkit-box-shadow: none!important;
+            -moz-box-shadow: none!important;
+            box-shadow: none!important;
         }
     }
     .drop-placeholder {
