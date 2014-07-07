@@ -3,9 +3,9 @@
 
 一个解决大数据列表渲染效率的下拉菜单组件。
 
-* 版本：0.5
+* 版本：0.6
 * 作者：阿克 (wgk1987@gmail.com)
-* demo：[http://gallery.kissyui.com/droplist/0.5/demo/index.html](http://gallery.kissyui.com/droplist/0.5/demo/index.html)
+* demo：[http://gallery.kissyui.com/droplist/0.6/demo/index.html](http://gallery.kissyui.com/droplist/0.6/demo/index.html)
 
 ## 快速使用
 
@@ -14,7 +14,7 @@
      * 组件有很多渲染模式，最简单的是根据 select 元素渲染
      * 更多渲染方式参考 Demo 和 API 说明
      */
-    S.use('gallery/droplist/0.5/index', function (S, DropList) {
+    S.use('gallery/droplist/0.6/index', function (S, DropList) {
         // 根据 select 节点构造 droplist 对象
         var dl = DropList.decorate(elSelect);
         // 渲染结构和数据。
@@ -25,7 +25,7 @@
 ## 参数详解
 
 <pre>
-KISSY.use('gallery/droplist/0.5/index', function (S, DropList) {
+KISSY.use('gallery/droplist/0.6/index', function (S, DropList) {
     var droplist = new DropList({
         // 用于设置初始化的选择值。
         // 注意：默认选项的数据格式为text和value。允许有其他值，但内部只使用text作为展示文案，value为选项唯一的标识（选项对比依赖value值）。
@@ -152,6 +152,10 @@ KISSY.use('gallery/droplist/0.5/index', function (S, DropList) {
         * 如果mulSelect参数为true，允许多选, 则为Array{Object}数组对象;
     * placeholder {String}
         * 设置占位符内容
+    * popup {Overlay|Object}
+        * 下拉浮层对象。也可以是overlay对应的配置对象
+    * readonly {Boolean}
+        * 是否只读。设置输入框为readonly，无法输入内容。
 
 ### 静态方法
 * decorate 用于渲染select元素为DropList对象。
@@ -174,10 +178,6 @@ KISSY.use('gallery/droplist/0.5/index', function (S, DropList) {
     * return {mulDropList Instance} 返回多级DropList组合的联动对象。
         * 特有方法: doWith(index, value, fnMatch, fnMismatch);  index为多级的序号（0表示第一级）,其他参数同下doWith方法
         * 特有事件: change 同下事件change
-
-### 静态属性
-* NOT_FOUND_VALUE = -1
-    * 配置了freedom时，输入项没有匹配，且设为当前选择项时的默认value值。
 
 ### 属性
 * elWrap

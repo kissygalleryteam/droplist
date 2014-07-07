@@ -27,10 +27,19 @@ KISSY.add(function(S, Overlay, Lap) {
     S.augment(View, S.EventTarget, {
         _init: function(datalist, config) {
             var self = this,
-                cfg = S.merge(def, config),
-                layer = new Overlay({
+                cfg = S.merge(def, config);
+
+            var popupCfg = config.popup,
+                layer;
+
+            // 允许自定义浮层对象。
+            if(!(popupCfg instanceof Overlay)) {
+                layer = new Overlay(S.merge({
                     prefixCls: TEMPLATES.prefixCls
-                });
+                }, popupCfg));
+            }else {
+                layer = popupCfg;
+            }
 
             self.layer = layer;
             self.elList = D.create('<ul></ul>')
@@ -90,6 +99,8 @@ KISSY.add(function(S, Overlay, Lap) {
                 }, 20);
                 return true;
             }
+            var timerStart = S.now();
+
             D.html(self.elList, EMPTY);
             lap = self.lap = Lap(list, {duration: 30});
             self._list = list;
@@ -107,6 +118,11 @@ KISSY.add(function(S, Overlay, Lap) {
             // 数据完成以后的事件响应。
             lap.then(function() {
                 D.append(fragment, self.elList);
+
+                self.fire('afterRender', {
+                    timer : S.now() - timerStart
+                });
+
                 self.lap = null;
             });
             lap.start();
@@ -249,7 +265,7 @@ KISSY.add(function(S, Overlay, Lap) {
                     if(!self.datalist.selected || !S.inArray(self._list[index], self.datalist.selected)){
                         newFocus = self._list[index];
                         break;
-                    };
+                    }
                 }
             }
         },

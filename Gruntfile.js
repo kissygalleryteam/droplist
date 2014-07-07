@@ -115,8 +115,8 @@ module.exports = function(grunt) {
                         src: ['**/*.less',
 							'!build/**/*.less',   
 							'!demo/**/*.less'],
-                        dest: '<%= pkg.version %>/build/',
-                        ext: '.less.css'
+                        dest: '<%= pkg.version %>/',
+                        ext: '.css'
                     }
                 ]
             }
@@ -214,7 +214,7 @@ module.exports = function(grunt) {
 
 
 	grunt.registerTask('build', '默认构建任务', function() {
-		task.run(['clean:build', 'kmc','uglify', 'copy','less','sass','cssmin']);
+		task.run(['clean:build', 'kmc','uglify', 'less','sass', 'copy', 'cssmin']);
 	});
 
 	// 启动Debug调试时的本地服务：grunt debug

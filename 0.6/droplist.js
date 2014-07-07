@@ -55,7 +55,7 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 '<div class="drop-trigger"><i class="caret"></i></div>' +
                 '<div class="drop-wrap">',
                 supportPlaceholder ? undefined : '<label class="drop-placeholder">{placeholder}</label>',
-                '<input class="drop-text" type="text" placeholder="{placeholder}" />' +
+                '<input class="drop-text" type="text" {readonly} placeholder="{placeholder}" />' +
                 '</div>' +
                 '<input class="drop-value" type="hidden" />' +
             '</div>'].join(EMPTY),
@@ -153,7 +153,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
 
             this._view = new View(this._data, {
                 format: cfg.format,
-                mulSelect: cfg.mulSelect
+                mulSelect: cfg.mulSelect,
+                popup: cfg.popup
             });
 
             this._bindControl();
@@ -381,6 +382,15 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 });
             });
 
+            view.on('afterRender', function(ev) {
+                // 超过300毫秒的渲染就不再做选择项定位了。
+                // 因为可能影响到用户的操作。
+                if(ev.timer < 300) {
+                    var data = self.getSelectedData();
+                    this.scrollIntoView(data);
+                }
+            });
+
             // 列表的鼠标点击操作和键盘回车选择操作是从view对象中触发的。
             view.on('itemSelect', function(ev) {
                 self._data.select(ev.id);
@@ -423,7 +433,8 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 var html = S.substitute(TEMPLATES.wrap, {
                     isMultiple: cfg.mulSelect?'droplist-multiple':'',
                     droplistCls: cfg.droplistCls?cfg.droplistCls:'',
-                    placeholder: cfg.placeholder
+                    placeholder: cfg.placeholder,
+                    readonly: cfg.readonly ? "readonly=readonly" : ""
                 });
                 elWrap = D.create(html);
             }
@@ -440,6 +451,9 @@ KISSY.add(function (S, D, E, IO, DataList, View) {
                 D.attr(elValue, 'name', fieldName);
                 D.attr(elText, 'name', inputName);
             }
+
+            D.prop(elText, 'readonly', cfg.readonly);
+
             this.elPlaceholder = elPlaceholder;
             this.elWrap = elWrap;
             this.elValue = elValue;

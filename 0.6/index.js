@@ -162,7 +162,7 @@ KISSY.add(function (S, D, E, DropList) {
 
     return DropList;
 
-}, {requires:['dom', 'event', './droplist','./index.less.css']});
+}, {requires:['dom', 'event', './droplist']});
 
 
 

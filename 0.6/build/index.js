@@ -1,10 +1,10 @@
 /*
 combined files : 
 
-gallery/droplist/0.5/datalist
-gallery/droplist/0.5/viewscroll
-gallery/droplist/0.5/droplist
-gallery/droplist/0.5/index
+gallery/droplist/0.6/datalist
+gallery/droplist/0.6/viewscroll
+gallery/droplist/0.6/droplist
+gallery/droplist/0.6/index
 
 */
 /**
@@ -12,7 +12,7 @@ gallery/droplist/0.5/index
  * 初次异步获取数据，或直接使用数据源或每次都异步获取数据。
  */
 
-KISSY.add('gallery/droplist/0.5/datalist',function(S) {
+KISSY.add('gallery/droplist/0.6/datalist',function(S) {
     var UNIQUEKEY = "__id",
         QUEUEINDEX = '__index',
         def = {
@@ -153,7 +153,7 @@ KISSY.add('gallery/droplist/0.5/datalist',function(S) {
  * 单页 scroll式的浮层。没有分页，没有分组。
  */
 
-KISSY.add('gallery/droplist/0.5/viewscroll',function(S, Overlay, Lap) {
+KISSY.add('gallery/droplist/0.6/viewscroll',function(S, Overlay, Lap) {
     var D = S.DOM, E = S.Event;
 
     var EMPTY = "",
@@ -178,10 +178,19 @@ KISSY.add('gallery/droplist/0.5/viewscroll',function(S, Overlay, Lap) {
     S.augment(View, S.EventTarget, {
         _init: function(datalist, config) {
             var self = this,
-                cfg = S.merge(def, config),
-                layer = new Overlay({
+                cfg = S.merge(def, config);
+
+            var popupCfg = config.popup,
+                layer;
+
+            // 允许自定义浮层对象。
+            if(!(popupCfg instanceof Overlay)) {
+                layer = new Overlay(S.merge({
                     prefixCls: TEMPLATES.prefixCls
-                });
+                }, popupCfg));
+            }else {
+                layer = popupCfg;
+            }
 
             self.layer = layer;
             self.elList = D.create('<ul></ul>')
@@ -241,6 +250,8 @@ KISSY.add('gallery/droplist/0.5/viewscroll',function(S, Overlay, Lap) {
                 }, 20);
                 return true;
             }
+            var timerStart = S.now();
+
             D.html(self.elList, EMPTY);
             lap = self.lap = Lap(list, {duration: 30});
             self._list = list;
@@ -258,6 +269,11 @@ KISSY.add('gallery/droplist/0.5/viewscroll',function(S, Overlay, Lap) {
             // 数据完成以后的事件响应。
             lap.then(function() {
                 D.append(fragment, self.elList);
+
+                self.fire('afterRender', {
+                    timer : S.now() - timerStart
+                });
+
                 self.lap = null;
             });
             lap.start();
@@ -400,7 +416,7 @@ KISSY.add('gallery/droplist/0.5/viewscroll',function(S, Overlay, Lap) {
                     if(!self.datalist.selected || !S.inArray(self._list[index], self.datalist.selected)){
                         newFocus = self._list[index];
                         break;
-                    };
+                    }
                 }
             }
         },
@@ -485,7 +501,7 @@ KISSY.add('gallery/droplist/0.5/viewscroll',function(S, Overlay, Lap) {
  * 3. E -> C
  * 4. F -> A -> B -> C
  */
-KISSY.add('gallery/droplist/0.5/droplist',function (S, D, E, IO, DataList, View) {
+KISSY.add('gallery/droplist/0.6/droplist',function (S, D, E, IO, DataList, View) {
 
     var supportPlaceholder = "placeholder" in document.createElement("input");
 
@@ -521,7 +537,7 @@ KISSY.add('gallery/droplist/0.5/droplist',function (S, D, E, IO, DataList, View)
                 '<div class="drop-trigger"><i class="caret"></i></div>' +
                 '<div class="drop-wrap">',
                 supportPlaceholder ? undefined : '<label class="drop-placeholder">{placeholder}</label>',
-                '<input class="drop-text" type="text" placeholder="{placeholder}" />' +
+                '<input class="drop-text" type="text" {readonly} placeholder="{placeholder}" />' +
                 '</div>' +
                 '<input class="drop-value" type="hidden" />' +
             '</div>'].join(EMPTY),
@@ -619,7 +635,8 @@ KISSY.add('gallery/droplist/0.5/droplist',function (S, D, E, IO, DataList, View)
 
             this._view = new View(this._data, {
                 format: cfg.format,
-                mulSelect: cfg.mulSelect
+                mulSelect: cfg.mulSelect,
+                popup: cfg.popup
             });
 
             this._bindControl();
@@ -847,6 +864,15 @@ KISSY.add('gallery/droplist/0.5/droplist',function (S, D, E, IO, DataList, View)
                 });
             });
 
+            view.on('afterRender', function(ev) {
+                // 超过300毫秒的渲染就不再做选择项定位了。
+                // 因为可能影响到用户的操作。
+                if(ev.timer < 300) {
+                    var data = self.getSelectedData();
+                    this.scrollIntoView(data);
+                }
+            });
+
             // 列表的鼠标点击操作和键盘回车选择操作是从view对象中触发的。
             view.on('itemSelect', function(ev) {
                 self._data.select(ev.id);
@@ -889,7 +915,8 @@ KISSY.add('gallery/droplist/0.5/droplist',function (S, D, E, IO, DataList, View)
                 var html = S.substitute(TEMPLATES.wrap, {
                     isMultiple: cfg.mulSelect?'droplist-multiple':'',
                     droplistCls: cfg.droplistCls?cfg.droplistCls:'',
-                    placeholder: cfg.placeholder
+                    placeholder: cfg.placeholder,
+                    readonly: cfg.readonly ? "readonly=readonly" : ""
                 });
                 elWrap = D.create(html);
             }
@@ -906,6 +933,9 @@ KISSY.add('gallery/droplist/0.5/droplist',function (S, D, E, IO, DataList, View)
                 D.attr(elValue, 'name', fieldName);
                 D.attr(elText, 'name', inputName);
             }
+
+            D.prop(elText, 'readonly', cfg.readonly);
+
             this.elPlaceholder = elPlaceholder;
             this.elWrap = elWrap;
             this.elValue = elValue;
@@ -1277,7 +1307,7 @@ KISSY.add('gallery/droplist/0.5/droplist',function (S, D, E, IO, DataList, View)
  * @module droplist
  **/
 
-KISSY.add('gallery/droplist/0.5/index',function (S, D, E, DropList) {
+KISSY.add('gallery/droplist/0.6/index',function (S, D, E, DropList) {
 
     DropList.decorate = function(el, config) {
         var data = [],
@@ -1435,7 +1465,7 @@ KISSY.add('gallery/droplist/0.5/index',function (S, D, E, DropList) {
 
     return DropList;
 
-}, {requires:['dom', 'event', './droplist','./index.less.css']});
+}, {requires:['dom', 'event', './droplist']});
 
 
 

@@ -1,18 +1,22 @@
 ## droplist
 
-* 版本：0.5
-* 教程：[http://gallery.kissyui.com/droplist/0.5/guide/index.html](http://gallery.kissyui.com/droplist/0.5/guide/index.html)
-* demo：[http://gallery.kissyui.com/droplist/0.5/demo/index.html](http://gallery.kissyui.com/droplist/0.5/demo/index.html)
+* 版本：0.6
+* 教程：[http://gallery.kissyui.com/droplist/0.6/guide/index.html](http://gallery.kissyui.com/droplist/0.6/guide/index.html)
+* demo：[http://gallery.kissyui.com/droplist/0.6/demo/index.html](http://gallery.kissyui.com/droplist/0.6/demo/index.html)
 
 ## changelog
+
+### v0.6
+- [+] 支持传入overlay实例对象作为浮层。即开放了下拉浮层的配置。popup配置。
+- [+] 支持设置输入框为只读。readonly属性配置。readonly配置。
+- [+] 在展开下拉浮层的时候，将当前选择项显示在可视范围内。（若所有下拉选项的渲染时间超过300ms，则该功能不会生效，主要是避免影响用户的操作）
+- [*] 不默认加载样式。index.css文件需要手动来引入（S.use("gallery/droplist/0.6/index.css")）。
 
 ### v0.5
 - [+] 增加复选select功能
 - [+] 增加由json数据渲染多级联动select功能,支持单选联动、多选联动、混合联动
 - [+] 增加了droplist的样式钩子，可配置样式名。config属性名: droplistCls
 - [+] 从现有select结构渲染，增加了placeholder属性配置占位符。
-
-
 
 ### v0.4
 - [*] bugfix
