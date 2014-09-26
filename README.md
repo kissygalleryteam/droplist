@@ -1,10 +1,13 @@
 ## droplist
 
-* 版本：0.6
-* 教程：[http://gallery.kissyui.com/droplist/0.6/guide/index.html](http://gallery.kissyui.com/droplist/0.6/guide/index.html)
-* demo：[http://gallery.kissyui.com/droplist/0.6/demo/index.html](http://gallery.kissyui.com/droplist/0.6/demo/index.html)
+* 版本：2.0.1
+* 教程：[http://gallery.kissyui.com/droplist/2.0.1/guide/index.html](http://gallery.kissyui.com/droplist/2.0.1/guide/index.html)
+* demo：[http://gallery.kissyui.com/droplist/2.0.1/demo/index.html](http://gallery.kissyui.com/droplist/2.0.1/demo/index.html)
 
 ## changelog
+
+### v2.0.1
+配合KISSY Gallery小组，将组件迁移到了gitlab/kg分组，修复组件引用的问题。
 
 ### v0.6
 - [+] 支持传入overlay实例对象作为浮层。即开放了下拉浮层的配置。popup配置。
