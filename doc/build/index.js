@@ -1,18 +1,17 @@
 /*
 combined files : 
 
-kg/droplist/2.0.0/datalist
-kg/droplist/2.0.0/viewscroll
-kg/droplist/2.0.0/droplist
-kg/droplist/2.0.0/index
+kg/droplist/2.0.1/datalist
+kg/droplist/2.0.1/viewscroll
+kg/droplist/2.0.1/droplist
+kg/droplist/2.0.1/index
 
 */
 /**
  * 默认，单页scroll式的数据。
  * 初次异步获取数据，或直接使用数据源或每次都异步获取数据。
  */
-
-KISSY.add('kg/droplist/2.0.0/datalist',function(S) {
+KISSY.add('kg/droplist/2.0.1/datalist',function(S, require, exports, module) {
     var UNIQUEKEY = "__id",
         QUEUEINDEX = '__index',
         def = {
@@ -114,9 +113,9 @@ KISSY.add('kg/droplist/2.0.0/datalist',function(S) {
 
             S.each(list, function(it, idx) {
                 var _id = S.guid();
-//                if(it[UNIQUEKEY] === undefined) {
+    //                if(it[UNIQUEKEY] === undefined) {
                     it[UNIQUEKEY] = _id;
-//                }
+    //                }
 
                 it[QUEUEINDEX] = idx;
                 map[_id] = it;
@@ -146,15 +145,16 @@ KISSY.add('kg/droplist/2.0.0/datalist',function(S) {
         }
     });
 
-    return DataList;
+    module.exports = DataList;
 });
-
 /**
  * 单页 scroll式的浮层。没有分页，没有分组。
  */
-
-KISSY.add('kg/droplist/2.0.0/viewscroll',function(S, Overlay, Lap) {
-    var D = S.DOM, E = S.Event;
+KISSY.add('kg/droplist/2.0.1/viewscroll',['dom', 'event', 'overlay', 'kg/lap/0.0.1/'], function(S, require, exports, module) {
+    var D = require('dom'),
+        E = require('event'),
+        Overlay = require('overlay'),
+        Lap = require('kg/lap/0.0.1/');
 
     var EMPTY = "",
         TEMPLATES = {
@@ -460,9 +460,7 @@ KISSY.add('kg/droplist/2.0.0/viewscroll',function(S, Overlay, Lap) {
         }
     });
 
-    return View;
-}, {
-    requires: ['overlay', 'kg/lap/0.1/index']
+    module.exports = View;
 });
 /**
  * @fileoverview
@@ -485,7 +483,12 @@ KISSY.add('kg/droplist/2.0.0/viewscroll',function(S, Overlay, Lap) {
  * 3. E -> C
  * 4. F -> A -> B -> C
  */
-KISSY.add('kg/droplist/2.0.0/droplist',function (S, D, E, IO, DataList, View) {
+KISSY.add('kg/droplist/2.0.1/droplist',['dom', 'event', 'ajax', './datalist', './viewscroll'], function(S, require, exports, module) {
+    var D = require('dom'),
+        E = require('event'),
+        IO = require('ajax'),
+        DataList = require('./datalist'),
+        View = require('./viewscroll');
 
     var supportPlaceholder = "placeholder" in document.createElement("input");
 
@@ -507,7 +510,7 @@ KISSY.add('kg/droplist/2.0.0/droplist',function (S, D, E, IO, DataList, View) {
             customData: undefined,
             autoMatch: true,
             mulSelect: false,  //是否多选
-//            emptyFormat: function(query) {return "没有搜索结果"},
+    //            emptyFormat: function(query) {return "没有搜索结果"},
             // format: function(data) {return data;},
             fnDataAdapter: function(data) {
                 return data;
@@ -923,7 +926,7 @@ KISSY.add('kg/droplist/2.0.0/droplist',function (S, D, E, IO, DataList, View) {
             E.on(this.elTrigger, 'click', function(ev) {
                 E.fire(elText, 'focus');
             });
-            
+
             D.unselectable(this.elTrigger);
 
             // 同步数据用。
@@ -994,7 +997,7 @@ KISSY.add('kg/droplist/2.0.0/droplist',function (S, D, E, IO, DataList, View) {
             // keydown时检测操作
             E.on(elInput, 'keydown', function(ev) {
                 var keyCode = ev.keyCode;
-                
+
                 // esc & tab
                 if(keyCode == 9 || keyCode == 27) {
                     self.hide();
@@ -1025,7 +1028,7 @@ KISSY.add('kg/droplist/2.0.0/droplist',function (S, D, E, IO, DataList, View) {
                     ev.preventDefault();
                     view.selectFocused();
                 }
-                
+
             });
 
             // keyup 进行搜索和输入操作
@@ -1118,7 +1121,7 @@ KISSY.add('kg/droplist/2.0.0/droplist',function (S, D, E, IO, DataList, View) {
 
             IO(ajaxParam);
         },
-        
+
         _runWithMatch: function(map, value, data) {
             data || (data = {});
 
@@ -1173,7 +1176,7 @@ KISSY.add('kg/droplist/2.0.0/droplist',function (S, D, E, IO, DataList, View) {
             });
         },
         _autoMatchInputWidth: function(){
-            var elText = this.elText, 
+            var elText = this.elText,
                 allOpt = D.siblings(elText),
                 maxW = D.width(D.parent(elText)),
                 curW = 0;
@@ -1259,8 +1262,9 @@ KISSY.add('kg/droplist/2.0.0/droplist',function (S, D, E, IO, DataList, View) {
             }
         }
     });
-    return DropList;
-}, {requires:['dom', 'event', 'ajax', './datalist', './viewscroll']});
+
+    module.exports = DropList;
+});
 /*
  ToDo
  - selection range
@@ -1276,8 +1280,10 @@ KISSY.add('kg/droplist/2.0.0/droplist',function (S, D, E, IO, DataList, View) {
  * @author wuake<ake.wgk@taobao.com>
  * @module droplist
  **/
-
-KISSY.add('kg/droplist/2.0.0/index',function (S, D, E, DropList) {
+KISSY.add('kg/droplist/2.0.1/index',['dom', 'event', './droplist'], function(S, require, exports, module) {
+    var D = require('dom'),
+        E = require('event'),
+        DropList = require('./droplist');
 
     DropList.decorate = function(el, config) {
         var data = [],
@@ -1372,7 +1378,7 @@ KISSY.add('kg/droplist/2.0.0/index',function (S, D, E, DropList) {
                     _dataSource.push(dt);
                     if(!_cfg.selectedItem && config.isDefault && dataSource[i][config.isDefault]){
                         if(_cfg.mulSelect){
-                            _selectedItem.push(dt); 
+                            _selectedItem.push(dt);
                         }else{
                             _selectedItem = dt;
                         }
@@ -1433,10 +1439,5 @@ KISSY.add('kg/droplist/2.0.0/index',function (S, D, E, DropList) {
         return new MulDroplist();
     };
 
-    return DropList;
-
-}, {requires:['dom', 'event', './droplist','./index.less.css']});
-
-
-
-
+    module.exports = DropList;
+});

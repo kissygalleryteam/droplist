@@ -3,9 +3,9 @@
 
 一个解决大数据列表渲染效率的下拉菜单组件。
 
-* 版本：2.0.0
+* 版本：2.0.1
 * 作者：阿克 (wgk1987@gmail.com)
-* demo：[http://kg.kissyui.com/droplist/2.0.0/demo/index.html](http://kg.kissyui.com/droplist/2.0.0/demo/index.html)
+* demo：[http://kg.kissyui.com/droplist/2.0.1/demo/index.html](http://kg.kissyui.com/droplist/2.0.1/demo/index.html)
 
 ## 快速使用
 

@@ -1,8 +1,14 @@
+/*
+combined files : 
+
+kg/droplist/2.0.1/datalist
+
+*/
 /**
  * 默认，单页scroll式的数据。
  * 初次异步获取数据，或直接使用数据源或每次都异步获取数据。
  */
-KISSY.add(function(S, require, exports, module) {
+KISSY.add('kg/droplist/2.0.1/datalist',function(S, require, exports, module) {
     var UNIQUEKEY = "__id",
         QUEUEINDEX = '__index',
         def = {

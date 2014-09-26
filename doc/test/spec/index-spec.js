@@ -7,4 +7,4 @@ KISSY.add(function (S, Node,Demo) {
         })
     });
 
-},{requires:['node','gallery/droplist/0.4/']});
+},{requires:['node','kg/droplist/2.0.1/']});

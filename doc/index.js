@@ -3,8 +3,10 @@
  * @author wuake<ake.wgk@taobao.com>
  * @module droplist
  **/
-
-KISSY.add(function (S, D, E, DropList) {
+KISSY.add(function(S, require, exports, module) {
+    var D = require('dom'),
+        E = require('event'),
+        DropList = require('./droplist');
 
     DropList.decorate = function(el, config) {
         var data = [],
@@ -99,7 +101,7 @@ KISSY.add(function (S, D, E, DropList) {
                     _dataSource.push(dt);
                     if(!_cfg.selectedItem && config.isDefault && dataSource[i][config.isDefault]){
                         if(_cfg.mulSelect){
-                            _selectedItem.push(dt); 
+                            _selectedItem.push(dt);
                         }else{
                             _selectedItem = dt;
                         }
@@ -160,9 +162,5 @@ KISSY.add(function (S, D, E, DropList) {
         return new MulDroplist();
     };
 
-    return DropList;
-
-}, {requires:['dom', 'event', './droplist','./index.less.css']});
-
-
-
+    module.exports = DropList;
+});

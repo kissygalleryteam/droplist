@@ -6,7 +6,8 @@
     <title>droplist的demo</title>
     <script src="http://g.tbcdn.cn/kissy/k/1.4.1/seed-min.js" charset="utf-8"></script>
     <link rel="stylesheet" href="http://g.tbcdn.cn/kissy/k/1.4.1/css/dpl/base-min.css">
-<script>var S = KISSY;S.config({packages:[{name:"kg",path:"http://g.tbcdn.cn/kg/",charset:"utf-8",ignorePackageNameInUri:true}]});if (S.Config.debug){var srcPath = "../";S.config({packages:[{name:"kg/droplist/2.0.0",path:srcPath,charset:"utf-8",ignorePackageNameInUri:true}]});}</script></head>
+    <link rel="stylesheet" href="../build/index-min.css"/>
+<script>var S = KISSY;S.config({packages:[{name:"kg",path:"http://g.tbcdn.cn/kg/",charset:"utf-8",ignorePackageNameInUri:true}]});if (S.Config.debug){var srcPath = "../";S.config({packages:[{name:"kg/droplist/2.0.1",path:srcPath,charset:"utf-8",ignorePackageNameInUri:true}]});}</script></head>
 <body>
     <h2>DropList的Demo</h2>
     <div  class="infomation">
@@ -134,7 +135,7 @@
         }
     </style>
 
-<script src="../build/index.js" charset="utf-8"></script>
+<!--<script src="../build/index.js" charset="utf-8"></script>-->
 
 <script>
     if (KISSY.Config.debug) {
@@ -220,7 +221,7 @@
      * 在现有的符合要求的结构上进行渲染。
      * 优势是结构简单。渲染时基本不会对dom结构做变更，节省初始化开销。
      */
-    KISSY.use('kg/droplist/2.0.0/index', function (S, DropList) {
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
         var $log = S.one('.log', '#demo1');
         var droplist = new DropList({
             // 设置初始化选择项。
@@ -294,7 +295,7 @@
 </fieldset>
 
 <script id="source2" type="text/javascript">
-    KISSY.use('kg/droplist/2.0.0/index', function (S, DropList) {
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
         var $select = S.one('.tobedroplist', '#demo2'),
             $log = S.one('.log', '#demo2');
         // decorate方法是DropList对象的静态方法。
@@ -330,7 +331,7 @@
 </fieldset>
 
 <script id="source3" type="text/javascript">
-    KISSY.use('kg/droplist/2.0.0/index', function (S, DropList) {
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
         var $log = S.one('.log', '#demo3');
         // 不设置初始化选择值
         var droplist = new DropList({
@@ -386,7 +387,7 @@
     </div>
 </fieldset>
 <script id="source4" type="text/javascript">
-    KISSY.use('kg/droplist/2.0.0/index', function (S, DropList) {
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
         var $log = S.one('.log', '#demo4');
         // 不设置初始化选择值
         var droplist = new DropList({
@@ -473,7 +474,7 @@
 </fieldset>
 
 <script id="source5" type="text/javascript">
-    KISSY.use('kg/droplist/2.0.0/index', function (S, DropList) {
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
         var data = [];
         for(var i = 0;i< MaxItemCount; i++) {
             data.push({value: i.toString(), text: 'option' + i});
@@ -559,7 +560,7 @@
     </div>
 </fieldset>
 <script id="source10">
-    KISSY.use('kg/droplist/2.0.0/index', function (S, DropList) {
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
         var $log = S.one('.log', '#demo10');
         var droplist = new DropList({
             // 设置初始化选择项。
@@ -633,7 +634,7 @@
 </fieldset>
 
 <script id="source12" type="text/javascript">
-    KISSY.use('kg/droplist/2.0.0/index', function (S, DropList) {
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
         var $select = S.one('.tobedroplist', '#demo12'),
             $log = S.one('.log', '#demo12');
         // decorate方法是DropList对象的静态方法。
@@ -673,7 +674,7 @@
     </div>
 </fieldset>
 <script type="text/javascript" id="source7">
-    KISSY.use('kg/droplist/2.0.0/index', function (S, DropList) {
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
         var catlist = [{
             "isDefault": true,
             "catId": 1,
@@ -809,7 +810,7 @@
     </div>
 </fieldset>
 <script type="text/javascript" id="source8">
-    KISSY.use('kg/droplist/2.0.0/index', function (S, DropList) {
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
         var catlist = [{
             "isDefault": false,
             "catId": 1,
@@ -944,7 +945,7 @@
     </div>
 </fieldset>
 <script type="text/javascript" id="source9">
-    KISSY.use('kg/droplist/2.0.0/index', function (S, DropList) {
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
         var catlist = [{
             "isDefault": true,
             "catId": 1,

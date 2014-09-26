@@ -1,7 +1,13 @@
+/*
+combined files : 
+
+kg/droplist/2.0.1/viewscroll
+
+*/
 /**
  * 单页 scroll式的浮层。没有分页，没有分组。
  */
-KISSY.add(function(S, require, exports, module) {
+KISSY.add('kg/droplist/2.0.1/viewscroll',['dom', 'event', 'overlay', 'kg/lap/0.0.1/'], function(S, require, exports, module) {
     var D = require('dom'),
         E = require('event'),
         Overlay = require('overlay'),
