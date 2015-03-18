@@ -1,0 +1,1 @@
+KISSY.config("modules",{"kg/droplist/2.0.1/index":{requires:["dom","event","./droplist"]}});

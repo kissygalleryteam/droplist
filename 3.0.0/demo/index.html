@@ -1,0 +1,1090 @@
+
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>droplist的demo</title>
+    <script src="//g.alicdn.com/kissy/k/1.4.8/seed-min.js" charset="utf-8"></script>
+    <link rel="stylesheet" href="http://g.tbcdn.cn/kissy/k/1.4.1/css/dpl/base-min.css">
+    <link rel="stylesheet" href="../build/index-min.css"/>
+</head>
+<body>
+    <h2>DropList的Demo</h2>
+    <div  class="infomation">
+        <dl>
+            <dt>为什么要做这个组件？特点是什么？</dt>
+            <dd>建议大家看源码。若有其他需求，可以邮件联系我：wgk1987#gmail.com 或 ake.wgk#taobao.com</dd>
+            <dd>关于模拟下拉列表，最大的需求莫过于样式的定制。</dd>
+            <dd>KISSY自带的ComboBox基本上能满足80%的需求，但它对某些场景有致命的缺陷：大数据量的渲染效率太低，浏览器卡顿的情况比较明显。数据量大到一定程度甚至会导致浏览器僵死。</dd>
+            <dd>本组件跟其他下拉菜单组件的最大差别和特点就在于对大数据量处理的优化上。</dd>
+            <dd>其原理是：将数组拆分，根据浏览器本身的脚本执行能力进行分批渲染。避免出现数据量过多，或每个数据项操作过于复杂导致浏览器僵死的问题。</dd>
+            <dd>注意：目前能保证大数据量下，浏览器不至于僵死/卡死。但是数据多过多时，渲染还是会有卡顿的情况的。后续还会继续优化，敬请期待。</dd>
+            <dd >新增：<span style="color:red">json渲染多级联动，支持单选联动、多选联动、单选多选混合联动 </span> By  月飞  jianhui.fjh@alibaba-inc.com</dd>
+        </dl>
+    </div>
+    <style type="text/css">
+        body {
+          padding: 50px;
+          font: 12px tahoma,arial,\5b8b\4f53,sans-serif;
+          color: #333;
+          /*background: url(http://gtms03.alicdn.com/tps/i3/T1DoaBFwdfXXaYYcAs-640-960.jpg) #000 center center repeat;*/
+        }
+        /* 以下是demo的样式定义 */
+        h2 {
+            font-size: 1.5em;
+            margin: .83em 0;
+        }
+
+
+        /* 以下是demo的样式定义 */
+        .bright {
+            color: #f60;
+        }
+        .bold{
+            font-weight: 700;;
+        }
+
+        fieldset {
+            margin-bottom: 30px;
+            padding: 20px;
+            clear: both;
+        }
+        fieldset legend {
+            color: #000;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .log2{
+            margin: 10px 0;
+        }
+        .viewsource{
+            margin: 10px 0;
+        }
+        .viewsource .trigger {
+            background-color: #366097;
+            display: block;
+            width: 66px;
+            line-height: 20px;
+            color: #fff;
+            border: 1px solid #aaa;
+            cursor: pointer;
+            text-align: center;
+        }
+        .viewsource .board {
+            display: none;
+            border: 1px solid #aaa;
+        }
+
+        .ks-popup {
+            position: absolute;
+            left: -999em;
+            top: -999em;
+            background-color: #fff;
+            border: 1px solid #aaa;
+            padding: 10px;
+        }
+        .infomation {
+            padding: 15px 30px;
+            margin-bottom: 20px;
+            border: 5px solid rgba(238,238,238,0.8);
+            background-color: rgba(238, 238, 238, 0.44);
+        }
+        .infomation dt {
+            margin: 0;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .infomation dd{
+            margin: 0;
+            margin-bottom: 3px;
+            line-height: 18px;
+        }
+        .control{
+            float: left;
+        }
+        .viewsource{
+            clear: both;
+            overflow: hidden;
+            width:100%;
+            padding-top: 10px;
+        }
+        .log,.log2{
+            margin:0 10px;
+        }
+        #tab{
+            margin: 10px 0 40px;
+            padding: 0;
+            height: 30px;
+            line-height: 30px;
+            border-bottom: 1px solid #dcdcdc;
+        }
+        #tab li{
+            margin: 0;
+            list-style: none;
+            padding: 0 15px;
+            text-align: center;
+            float: left;
+            border: 1px solid #dcdcdc;
+            border-bottom: none;
+            cursor:pointer;
+        }
+        #tab li.cur{
+            background: #366097;
+            color:#fff;
+        }
+    </style>
+
+<!--<script src="../build/index.js" charset="utf-8"></script>-->
+
+<script>
+    if (KISSY.Config.debug) {
+        var srcPath = "../";
+        KISSY.config({
+            packages:[
+                {
+                    name:"kg/droplist/3.0.0",
+                    path:srcPath,
+                    charset:"utf-8",
+                    ignorePackageNameInUri:true
+                }
+            ]
+        });
+    }
+
+    KISSY.use('node', function() {
+        KISSY.ready(function(S) {
+            var $ = S.all;
+            $('.example').each(function($example) {
+                var id = $example.attr('data-source'),
+                $trigger = $example.one('.trigger');
+                var html = $example.one('.control').outerHTML();
+                html = html2str(html);
+                var source = $(id).html();
+                var $board = $example.one('.board', '.viewsource');
+                $board.html(html+source);
+                $trigger.on('click', function(ev) {
+                    $board.toggle();
+                });
+            });
+            function html2str(html){
+                return html.replace(/\</g,"&lt;").replace(/\>/,"&gt;");
+            }
+            $("#tab li").on("click",function(ev){
+                $(this).addClass("cur");
+                $(this).siblings().removeClass("cur");
+                var index = $("#tab li").index($(this));
+                $(".tab").hide();
+                $(".tab_"+index).show();
+            })
+        });
+    });
+</script>
+<script type="text/javascript">
+    // 打印信息。
+    function printLog(data) {
+        return KISSY.substitute("当前选择了“{text}”，其值为“{value}”", data || {value: "", text: ""})
+    }
+    // 用来测试大数据量渲染性能的上限。
+    var MaxItemCount = 2000;
+</script>
+
+<ul id="tab">
+    <li class="cur">单选模拟</li>
+    <li>多选模拟</li>
+    <li>联动模拟</li>
+</ul>
+
+<div class="tab tab_0">
+<fieldset class="example" id="demo1" data-source="#source1">
+    <legend>从现有结构中渲染</legend>
+    <div class="control">
+        <div class="droplist">
+            <div class="drop-trigger"> <i class="caret"></i></div>
+            <div class="drop-wrap">
+                <input type="text" class="drop-text" />
+            </div>
+            <input type="hidden" class="drop-value" />
+        </div>
+        <span class="log"></span>
+        <span class="log2"></span>
+    </div>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+<script id="source1">
+    /**
+     * 在现有的符合要求的结构上进行渲染。
+     * 优势是结构简单。渲染时基本不会对dom结构做变更，节省初始化开销。
+     */
+    KISSY.use('kg/droplist/2.0.1/index', function (S, DropList) {
+        var $log = S.one('.log', '#demo1');
+        var droplist = new DropList({
+            // 设置初始化选择项。
+            selectedItem: {
+                value: "4",
+                text: "列表项4"
+            },
+            // 现有的结构选择器或者元素
+            srcNode: ".droplist",
+            // 直接传入数据。
+            // 数据格式需要有text和value。且value不允许重复。
+            // <a class="tip" href="#standard">什么是标准数据</a>
+            dataSource: [
+                {text: "列表项1", value: 1},
+                {text: "列表项2", value: 2},
+                {text: "列表项3", value: 3},
+                {text: "列表项4", value: 4},
+                {text: "列表项5", value: 5},
+                {text: "列表项6", value: 6},
+                {text: "列表项7", value: 7},
+                {text: "列表项8", value: 8},
+                {text: "列表项9", value: 9},
+                {text: "列表项10", value: 10},
+                {text: "列表项11", value: 11}
+            ]
+        });
+        // 值发生变化的时候触发change事件
+        droplist.on('change', function(ev) {
+            var data = ev.data;
+            $log.html(printLog(data));
+        });
+        // render以后才渲染结构。包括事件绑定，和初始化选择触发。
+        // 注意：同步传入的数据，如果在render之后绑定事件，则一些初始的事件是不会被执行的。
+        droplist.render();
+        // 用另一种方式来绑定事件～～
+        var $log2 = S.one('.log2', '#demo1');
+        droplist.doWith("10", function() {
+            $log2.html("匹配到了值为10的项");
+        }, function(dt) {
+            var data = dt.data;
+            $log2.html("未匹配到值为10的项，当前匹配的项为：“"+(data.text) + "”");
+        });
+    });
+</script>
+
+<fieldset class="example" id="demo2" data-source="#source2">
+    <legend>从现有的select节点中渲染</legend>
+    <div class="control">
+        <select name="testName" class="tobedroplist" placeholder="请选择option">
+            <option value="1">option1</option>
+            <option value="2" data-default="false">option2</option>
+            <option value="3" data-default="true">option3</option>
+            <option value="4">option4</option>
+        </select>
+        <span class="log"></span>
+        <ul>
+            <li>
+                <a class="J_ToSelect" data-value="4" href="#">选择value为4的项</a>
+            </li>
+            <li>
+                <a class="J_ToSelect" data-value="2" href="#">选择value为2的项</a>
+            </li>
+        </ul>
+    </div>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+
+<script id="source2" type="text/javascript">
+    KISSY.use('kg/droplist/3.0.0/index', function (S, DropList) {
+        var $select = S.one('.tobedroplist', '#demo2'),
+            $log = S.one('.log', '#demo2');
+        // decorate方法是DropList对象的静态方法。
+        // 把原生select元素渲染成droplist对象
+        var droplist = DropList.decorate($select[0], {
+            droplistCls: "style-1",
+            freedom: false,
+            mulSelect: false
+        });
+        droplist.on('change', function(ev) {
+            $log.html(printLog(ev.data)+"，所有值:"+ev.value);
+        });
+        droplist.render();
+        S.all('.J_ToSelect').on('click', function(ev) {
+            ev.halt();
+            var target = ev.currentTarget,
+                value = S.one(target).attr('data-value');
+            // 通过selectByValue方法，根据value值设置选择项。
+            droplist.selectByValue(value);
+        });
+    });
+</script>
+
+<fieldset class="example" data-source="#source3" id="demo3">
+    <legend>脚本动态创建，列表异步获取<span class="bright">标准</span>数据</legend>
+    <div class="control"></div>
+    <span class="droplistwrap"></span>
+    <span class="log"></span>
+    <div class="viewsource">
+        <div><span class="trigger">查看源码</span></div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+
+<script id="source3" type="text/javascript">
+    KISSY.use('kg/droplist/3.0.0/index', function (S, DropList) {
+        var $log = S.one('.log', '#demo3');
+        // 不设置初始化选择值
+        var droplist = new DropList({
+            // 异步获取数据。
+            // 返回的数据格式要<a href="#standard" class="tip">符合约定</a>。
+            dataSource: "./getlist.html?type=1",
+            placeholder: "可以直接输入内容",
+            /**
+             * 是否支持自定义输入内容。
+             * 在失去焦点时，若没有对应的选择项。则会将当前输入内容为text，默认-1为value进行存储。
+             * 默认false
+             */
+            freedom: true,
+            /**
+             * 是否在失去焦点的时候自动根据当前输入值进行匹配。
+             * 若匹配到某一项的text与输入值一致，则设置该项为选中状态。
+             * 默认false
+             */
+            autoMatch: true,
+            /**
+             * 若搜索结果为空，则可以定制展示的内容。
+             * 支持function，其返回的html作为内容显示。参数query为当前输入的搜索关键词
+             * 也支持纯字符串。字符串直接作为内容显示。
+             */
+            emptyFormat: function(query) {
+                return "没有与“ <strong>"+query+"</strong> ”相匹配的结果"
+            },
+            // 指定插入的位置。
+            insertion: '#demo3 .droplistwrap',
+            format: function(data) {
+                data.text = [
+                        "<b>",
+                    data.text,
+                        "</b>123"
+                ].join("")
+                return data;
+            }
+        });
+        droplist.on('change', function(ev) {
+            var log = printLog(ev.data);
+            $log.html(log);
+        });
+        droplist.render();
+    });
+</script>
+
+<fieldset class="example" data-source="#source4" id="demo4">
+    <legend>脚本动态创建，列表异步获取<span class="bright">非标准</span>数据</legend>
+    <div class="control"><span class="log"></span></div>
+    <div class="viewsource">
+        <div><span class="trigger">查看源码</span></div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+<script id="source4" type="text/javascript">
+    KISSY.use('kg/droplist/3.0.0/index', function (S, DropList) {
+        var $log = S.one('.log', '#demo4');
+        // 不设置初始化选择值
+        var droplist = new DropList({
+            // 异步获取数据。
+            // 可以是KISSY.io的参数。
+            dataSource: {
+                url: "./getlist3.html",
+                // 默认就是json格式
+                dataType: "json",
+                // 设置异步请求的参数
+                data: {
+                    parama: 1,
+                    paramb: 2
+                }
+            },
+            remote: {
+                url: "./search.php"
+            },
+            selectedItem: {
+                value: "8",
+                text: "890"
+            },
+            // 指定插入的位置。参数el为droplist对象的容器节点。
+            insertion: function(el) {
+                S.one(el).insertBefore($log);
+            },
+            // 通过对异步返回的数据进行调整。
+            // 使得异步数据也满足约定的标准。
+            // 主要是确保有result和list数据。
+            // 这里<em class="bright">不</em>对<em class="bold">列表项</em>进行适配。
+            fnReceive: function(dt) {
+                var data = dt.data,
+                        result = data && data.length > 0;
+
+                if(!result) {
+                    alert("您还没有创建数据");
+                }
+
+                return {
+                    result: result,
+                    list: data
+                }
+            },
+            // 通过数据适配函数来调整异步获取的数据。
+            // 使得<em class="bold">列表项</em>的数据结构符合约定的标准。
+            fnDataAdapter: function(list) {
+                var result = [];
+                S.each(list, function(it) {
+                    result.push({
+                        text: it.text,
+                        value: it.id
+                    });
+                });
+                return result;
+            }
+        });
+        droplist.on('change', function(ev) {
+            // 获取当前选项的数据。
+            var data = droplist.getSelectedData();
+            $log.html(printLog(data));
+        });
+        droplist.render();
+    });
+</script>
+
+<fieldset class="example" id="demo5" data-source="#source5">
+    <legend>DropList组件对大数据量的渲染</legend>
+    <div class="control">
+        <div class="droplist" id="large">
+            <div class="drop-trigger"> <i class="caret"></i></div>
+            <div class="drop-wrap">
+                <input type="text" class="drop-text" />
+            </div>
+            <input type="hidden" class="drop-value" />
+        </div>
+        <span class="log"></span>
+    </div>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+
+<script id="source5" type="text/javascript">
+    KISSY.use('kg/droplist/3.0.0/index', function (S, DropList) {
+        var data = [];
+        for(var i = 0;i< MaxItemCount; i++) {
+            data.push({value: i.toString(), text: 'option' + i});
+        }
+        var droplist = new DropList({
+            selectedItem: {
+                value: "4",
+                text: "option4"
+            },
+            srcNode: "#large",
+            // 直接传入数据。
+            // 数据格式必须有text和value。且value不允许重复。<a href="#standard" class="tip">格式说明</a>
+            dataSource: data
+        });
+        var elLog = S.one('.log', '#demo5');
+        droplist.on('change', function(ev) {
+            var data = ev.data;
+            elLog.html(printLog(data));
+        });
+        droplist.render();
+    });
+</script>
+
+<fieldset id="demo6" data-source="#source6" class="example">
+    <link href="http://g.tbcdn.cn/kissy/k/1.3.1/??button/assets/dpl.css,calendar/assets/dpl.css,menu/assets/dpl.css,combobox/assets/dpl.css,menubutton/assets/dpl.css,overlay/assets/dpl.css,split-button/assets/dpl.css,tabs/assets/dpl.css,toolbar/assets/dpl.css,tree/assets/dpl.css?20130815" rel="stylesheet"/>
+    <style type="text/css">
+        .ks-popupmenu {
+            max-height: 200px;
+            overflow: auto;
+        }
+    </style>
+    <legend>其他下拉菜单组件对大数据量的渲染</legend>
+
+    <div class="control">
+        <div class="ks-combobox" id="J_Combox">
+            <div class="ks-combobox-trigger">
+                <div class="ks-combobox-trigger-inner">▼</div>
+            </div>
+            <div class="ks-combobox-input-wrap">
+                <input class="ks-combobox-input">
+            </div>
+        </div> 
+        <em>点击下拉箭头以后，浏览器会僵住，请耐心等待。。。</em>
+    </div>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+<script id="source6" type="text/javascript">
+    // KISSY ComboBox 组件。
+    KISSY.use('combobox', function(S, ComboBox) {
+        var data = [];
+        for(var i = 0;i< MaxItemCount; i++) {
+            data.push('option' + i);
+        }
+        var basicComboBox = new ComboBox({
+            srcNode: S.one("#J_Combox"),
+            width: 200,
+            dataSource: new ComboBox.LocalDataSource({
+                data: data
+            })
+        });
+        basicComboBox.render();
+    });
+</script>
+
+</div>
+<div class="tab tab_1">
+
+<fieldset class="example" id="demo10" data-source="#source10">
+    <legend>指定空节点渲染</legend>
+    <div class="control" id="dt1"></div>
+    <span class="log"></span>
+    <span class="log2"></span>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+<script id="source10">
+    KISSY.use('kg/droplist/3.0.0/index', function (S, DropList) {
+        var $log = S.one('.log', '#demo10');
+        var droplist = new DropList({
+            // 设置初始化选择项。
+            selectedItem: [{
+                value: "4",
+                text: "列表项44444"
+            }],
+            mulSelect: true,
+            insertion: "#dt1",
+            // 直接传入数据。
+            // 数据格式需要有text和value。且value不允许重复。
+            // <a class="tip" href="#standard">什么是标准数据</a>
+            dataSource: [
+                {text: "列表项1", value: 1},
+                {text: "列表项2", value: 2},
+                {text: "列表项3", value: 3},
+                {text: "列表项4", value: 4},
+                {text: "列表项5", value: 5},
+                {text: "列表项6", value: 6},
+                {text: "列表项7", value: 7},
+                {text: "列表项8", value: 8},
+                {text: "列表项9", value: 9},
+                {text: "列表项10", value: 10},
+                {text: "列表项11", value: 11}
+            ]
+        });
+        // 值发生变化的时候触发change事件
+        droplist.on('change', function(ev) {
+            var data = ev.data;
+            $log.html(printLog(data));
+        });
+        // render以后才渲染结构。包括事件绑定，和初始化选择触发。
+        // 注意：同步传入的数据，如果在render之后绑定事件，则一些初始的事件是不会被执行的。
+        droplist.render();
+        // 用另一种方式来绑定事件～～
+        var $log2 = S.one('.log2', '#demo10');
+        droplist.doWith("10", function() {
+            $log2.html("匹配到了值为10的项");
+        }, function(dt) {
+            var data = dt.data;
+            $log2.html("未匹配到值为10的项，当前匹配的项为：“"+(data.text) + "”");
+        });
+    });
+</script>
+
+<fieldset class="example" id="demo12" data-source="#source12">
+    <legend>从现有的select节点中渲染</legend>
+    <div class="control">
+        <select name="testName" class="tobedroplist" placeholder="请选择option">
+            <option value="1">option1</option>
+            <option value="2" data-default="false">option2</option>
+            <option value="3" data-default="true">option3</option>
+            <option value="4">option4</option>
+        </select>
+        <span class="log"></span>
+        <ul>
+            <li>
+                <a class="J_ToSelect" data-value="4" href="#">选择value为4的项</a>
+            </li>
+            <li>
+                <a class="J_ToSelect" data-value="2" href="#">选择value为2的项</a>
+            </li>
+        </ul>
+    </div>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+
+<script id="source12" type="text/javascript">
+    KISSY.use('kg/droplist/3.0.0/index', function (S, DropList) {
+        var $select = S.one('.tobedroplist', '#demo12'),
+            $log = S.one('.log', '#demo12');
+        // decorate方法是DropList对象的静态方法。
+        // 把原生select元素渲染成droplist对象
+        var droplist = DropList.decorate($select[0], {
+            droplistCls: "style-1",
+            freedom: false,
+            mulSelect: true
+        });
+        droplist.on('change', function(ev) {
+            $log.html(printLog(ev.data)+"，所有值:"+ev.value);
+        });
+        droplist.render();
+        S.all('.J_ToSelect').on('click', function(ev) {
+            ev.halt();
+            var target = ev.currentTarget,
+                value = S.one(target).attr('data-value');
+            // 通过selectByValue方法，根据value值设置选择项。
+            droplist.selectByValue(value);
+        });
+    });
+</script>
+</div>
+
+<div class="tab tab_2">
+
+<fieldset class="example" id="demo7" data-source="#source7">
+    <legend>由json数据渲染多极联动——单选</legend>
+    <div class="control" id="mul1"></div>
+    <span class="log"></span>
+    <span class="log2"></span>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+<script type="text/javascript" id="source7">
+    KISSY.use('kg/droplist/3.0.0/index', function (S, DropList) {
+        var catlist = [{
+            "isDefault": true,
+            "catId": 1,
+            "catName": "名称1",
+            "subCat": [{
+                "catId": 11,
+                "catName": "名称11",
+                "subCat": [{
+                    "catId": 111,
+                    "catName": "名称111",
+                    "subCat": [{
+                        "catId": 1111,
+                        "catName": "名称1111",
+                        "subCat": []
+                    },{
+                        "catId": 1112,
+                        "catName": "名称1112",
+                        "subCat": []
+                    },{
+                        "catId": 1113,
+                        "catName": "名称1113",
+                        "subCat": []
+                    },{
+                        "catId": 1114,
+                        "catName": "名称1114",
+                        "subCat": []
+                    }]
+                },{
+                    "catId": 112,
+                    "catName": "名称112",
+                    "subCat": [{
+                        "catId": 1121,
+                        "catName": "名称1121",
+                        "subCat": []
+                    }]
+                }]
+            },{
+                "isDefault": false,
+                "catId": 12,
+                "catName": "名称12",
+                "subCat": [{
+                    "catId": 121,
+                    "catName": "名称121",
+                    "subCat": []
+                },{
+                    "catId": 122,
+                    "catName": "名称122",
+                    "subCat": []
+                }]
+            },{
+                "catId": 13,
+                "catName": "名13",
+                "subCat": [{
+                    "catId": 131,
+                    "catName": "名称131",
+                    "subCat": []
+                }]
+            },{
+                "catId": 14,
+                "catName": "名14",
+                "subCat": [{
+                    "catId": 141,
+                    "catName": "名称141",
+                    "subCat": []
+                }]
+            }]
+        },{
+            "catId": 2,
+            "catName": "名称2",
+            "subCat": [{
+                "catId": 22,
+                "catName": "名称22",
+                "subCat": []
+            }]
+        }];
+
+        var arrD_1 = DropList.multiple({
+            droplistCls: "style-1",              // 样式风格
+            insertion: "#mul1",                  // 显示节点
+            dataSource: catlist,                 // 数据源 Array -> Json
+            paramSubcat: "subCat",               // 子选项的属性名 Array -> Json
+            paramText: "catName",                // 作为选项显示内容的属性名 String
+            paramValue: "catId",                 // 作为值的属性名  String OR Number
+            isDefault: "isDefault",              // 默认值参数 boolean
+            mulSelect: false,                    // 单选(默认) OR 多选
+            // subcatDeep: 3,                    // 默认显示SubDrop的个数 Number
+            // isShowSub: true || false,         // subcatDeep设置了才生效，默认是否显示所有subDrop boolean
+            subConfig: [{
+                // selectedItem: {
+                //     value: "1",
+                //     text: "名称1"
+                // },                     
+                placeholder: "请选择一级类目...",
+                fieldName: "aaa",
+                inputName: "bbb"
+            },{
+                placeholder: "请选择二级类目..."
+            },{
+                placeholder: "请选择三级类目..."
+            }]
+        });
+
+        var $log = S.one('.log', '#demo7');
+        arrD_1.on("change", function(ev){
+            var data = ev.data;
+            var html="选择的值是";
+            for (var i = 0; i < data.length; i++) {
+                html += "-" + data[i].value;
+            };
+            $log.html(html);
+        });
+
+        var $log2 = S.one('.log2', '#demo7');
+        arrD_1.doWith(1, "11", function(dt) {
+            $log2.html("匹配到了值为11的项");
+        }, function(dt) {
+            var data = dt.data;
+            $log2.html("未匹配到值为11的项");
+        });
+    });
+</script>
+
+<fieldset class="example" id="demo8" data-source="#source8">
+    <legend>由json数据渲染多极联动——多选</legend>
+    <div class="control" id="mul2"></div>
+    <span class="log"></span>
+    <span class="log2"></span>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+<script type="text/javascript" id="source8">
+    KISSY.use('kg/droplist/3.0.0/index', function (S, DropList) {
+        var catlist = [{
+            "isDefault": false,
+            "catId": 1,
+            "catName": "名称1",
+            "subCat": [{
+                "catId": 11,
+                "catName": "名称11",
+                "subCat": [{
+                    "catId": 111,
+                    "catName": "名称111",
+                    "subCat": [{
+                        "catId": 1111,
+                        "catName": "名称1111",
+                        "subCat": []
+                    },{
+                        "catId": 1112,
+                        "catName": "名称1112",
+                        "subCat": []
+                    },{
+                        "catId": 1113,
+                        "catName": "名称1113",
+                        "subCat": []
+                    },{
+                        "catId": 1114,
+                        "catName": "名称1114",
+                        "subCat": []
+                    }]
+                },{
+                    "catId": 112,
+                    "catName": "名称112",
+                    "subCat": [{
+                        "catId": 1121,
+                        "catName": "名称1121",
+                        "subCat": []
+                    }]
+                }]
+            },{
+                "catId": 12,
+                "catName": "名称12",
+                "subCat": [{
+                    "catId": 121,
+                    "catName": "名称121",
+                    "subCat": []
+                },{
+                    "catId": 122,
+                    "catName": "名称122",
+                    "subCat": []
+                }]
+            },{
+                "catId": 13,
+                "catName": "名13",
+                "subCat": [{
+                    "catId": 131,
+                    "catName": "名称131",
+                    "subCat": []
+                }]
+            },{
+                "catId": 14,
+                "catName": "名14",
+                "subCat": [{
+                    "catId": 141,
+                    "catName": "名称141",
+                    "subCat": []
+                }]
+            }]
+        },{
+            "catId": 2,
+            "catName": "名称2",
+            "subCat": [{
+                "catId": 22,
+                "catName": "名称22",
+                "subCat": []
+            }]
+        }];
+        var arrD_1 = DropList.multiple({
+            insertion: "#mul2",                  // 显示节点
+            dataSource: catlist,                 // 数据源 Array -> Json
+            paramSubcat: "subCat",               // 子选项的属性名 Array -> Json
+            paramText: "catName",                // 作为选项显示内容的属性名 String
+            paramValue: "catId",                 // 作为值的属性名  String OR Number
+            isDefault: "isDefault",              // 默认值参数 boolean
+            mulSelect: true,                     // 单选(默认) OR 多选
+            subcatDeep: 3,                       // 默认显示SubDrop的个数 Number
+            isShowSub: true,                     // subcatDeep设置了才生效，默认是否显示所有subDrop boolean
+            subConfig: [{                        
+                placeholder: "请选择一级类目..."
+            },{
+                placeholder: "请选择二级类目..."
+            },{
+                placeholder: "请选择三级类目..."
+            }]
+        });
+        var $log = S.one('.log', '#demo8');
+        arrD_1.on("change", function(ev){
+            var data = ev.data;
+            var html="选择的值是";
+            for (var i = 0; i < data.length; i++) {
+                if(S.isArray(data[i])){
+                    var _v = [];
+                    for (var j = 0; j < data[i].length; j++){
+                        _v.push(data[i][j].value);
+                    };
+                    html += "-" + _v.join(",");
+                }else{
+                    html += "-" + data[i].value;
+                }
+            };
+            $log.html(html);
+        });
+
+        var $log2 = S.one('.log2', '#demo8');
+        arrD_1.doWith(1, "11", function(dt) {
+
+            $log2.html("匹配到了值为11的项");
+        }, function(dt) {
+
+            var data = dt.data;
+            $log2.html("未匹配到值为11的项");
+        });
+    });
+</script>
+<fieldset class="example" id="demo9" data-source="#source9">
+    <legend>由json数据渲染多极联动——单选、多选混合</legend>
+    <div class="control" id="mul3"></div>
+    <span class="log"></span>
+    <span class="log2"></span>
+    <div class="viewsource">
+        <div>
+            <span class="trigger">查看源码</span>
+        </div>
+        <pre class="board"></pre>
+    </div>
+</fieldset>
+<script type="text/javascript" id="source9">
+    KISSY.use('kg/droplist/3.0.0/index', function (S, DropList) {
+        var catlist = [{
+            "isDefault": true,
+            "catId": 1,
+            "catName": "名称1",
+            "subCat": [{
+                "catId": 11,
+                "catName": "名称11",
+                "subCat": [{
+                    "catId": 111,
+                    "catName": "名称111",
+                    "subCat": [{
+                        "catId": 1111,
+                        "catName": "名称1111",
+                        "subCat": []
+                    },{
+                        "catId": 1112,
+                        "catName": "名称1112",
+                        "subCat": []
+                    },{
+                        "catId": 1113,
+                        "catName": "名称1113",
+                        "subCat": []
+                    },{
+                        "catId": 1114,
+                        "catName": "名称1114",
+                        "subCat": []
+                    }]
+                },{
+                    "catId": 112,
+                    "catName": "名称112",
+                    "subCat": [{
+                        "catId": 1121,
+                        "catName": "名称1121",
+                        "subCat": []
+                    }]
+                }]
+            },{
+                "catId": 12,
+                "catName": "名称12",
+                "subCat": [{
+                    "catId": 121,
+                    "catName": "名称121",
+                    "subCat": []
+                },{
+                    "catId": 122,
+                    "catName": "名称122",
+                    "subCat": []
+                }]
+            },{
+                "catId": 13,
+                "catName": "名13",
+                "subCat": [{
+                    "catId": 131,
+                    "catName": "名称131",
+                    "subCat": []
+                }]
+            },{
+                "catId": 14,
+                "catName": "名14",
+                "subCat": [{
+                    "catId": 141,
+                    "catName": "名称141",
+                    "subCat": []
+                }]
+            }]
+        },{
+            "catId": 2,
+            "catName": "名称2",
+            "subCat": [{
+                "catId": 22,
+                "catName": "名称22",
+                "subCat": []
+            }]
+        }];
+        var arrD_1 = DropList.multiple({
+            insertion: "#mul3",                  // 显示节点
+            dataSource: catlist,                 // 数据源 Array -> Json
+            paramSubcat: "subCat",               // 子选项的属性名 Array -> Json
+            paramText: "catName",                // 作为选项显示内容的属性名 String
+            paramValue: "catId",                 // 作为值的属性名  String OR Number
+            isDefault: "isDefault",              // 默认值参数 boolean
+            mulSelect: true,                     // 单选(默认) OR 多选
+            // subcatDeep: 3,                       // 默认显示SubDrop的个数 Number
+            // isShowSub: true,                     // subcatDeep设置了才生效，默认是否显示所有subDrop boolean
+            subConfig: [{
+                mulSelect: false,                        
+                placeholder: "请选择一级类目..."
+            },{
+                placeholder: "请选择二级类目..."
+            },{
+                placeholder: "请选择三级类目..."
+            }]
+        });
+        var $log = S.one('.log', '#demo9');
+        arrD_1.on("change", function(ev){
+            var data = ev.data;
+            var html="选择的值是";
+            for (var i = 0; i < data.length; i++) {
+                if(S.isArray(data[i])){
+                    var _v = [];
+                    for (var j = 0; j < data[i].length; j++){
+                        _v.push(data[i][j].value);
+                    };
+                    html += "-" + _v.join(",");
+                }else{
+                    html += "-" + data[i].value;
+                }
+            };
+            $log.html(html);
+        });
+
+        var $log2 = S.one('.log2', '#demo9');
+        arrD_1.doWith(1, "11", function(dt) {
+            $log2.html("匹配到了值为11的项");
+        }, function(dt) {
+            var data = dt.data;
+            $log2.html("未匹配到值为11的项");
+        });
+    });
+</script>
+</div>
+
+<div id="standard" class="infomation">
+    <dl>
+        <dt>标准数据格式约定</dt>
+        <dd>
+            <pre>
+            {
+                result: true, // 判断返回是否正常。
+                msg: "", // 如果result为false，则默认会alert显示msg
+                list: [  // 列表数据，数组。
+                    // 每一个数据对象包含value和text。
+                    // 且value值不允许重复。且字段值都只能是字符串。
+                    {value: "", text: ""}
+                ]
+            }
+            </pre>
+        </dd>
+    </dl>
+</div>
+</body>
+</html>
